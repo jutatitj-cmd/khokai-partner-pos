@@ -3,17 +3,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>KHOKAI ERP Lite V2.1.2</title>
+  <title>KHOKAI ERP Lite V2.1.3</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
-  <div id="app" style="padding:16px;font-family:system-ui">กำลังโหลด KHOKAI ERP Lite...</div>
+  <div id="app" style="padding:16px;font-family:system-ui">กำลังโหลด...</div>
   <script>
     window.addEventListener('error', function(e){
-      document.body.innerHTML = '<div style="padding:20px;font-family:system-ui;color:#111"><h2>เปิดระบบไม่ได้</h2><p>JS Error: '+(e.message||'unknown')+'</p><p>ลองอัปไฟล์ V2 hotfix ทับใหม่ หรือกด Clear site data</p></div>';
+      document.body.innerHTML = '<div style="padding:20px;font-family:system-ui;color:#111"><h2>เปิดระบบไม่ได้</h2><p>JS Error: '+(e.message||'unknown')+'</p><button onclick="localStorage.clear();location.reload()">Clear site data</button></div>';
     });
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/app.js?v=2.1.2"></script>
+  <script src="js/app.js?v=2.1.3"></script>
 </body>
 </html>
