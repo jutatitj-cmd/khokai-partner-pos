@@ -66,3 +66,36 @@ create table if not exists partner_crm_logs (
   next_followup_date date,
   created_at timestamptz default now()
 );
+
+-- V2.1.1: optional compatibility table for Partner POS Product Master
+-- If your Mini POS already has product_option, keep using the existing table.
+-- Add any missing columns below only when needed.
+create table if not exists product_option (
+  id uuid primary key default gen_random_uuid(),
+  sku text,
+  option_id text,
+  display_product_id text,
+  product_name_th text,
+  product_name_ko text,
+  unit text default 'pack',
+  pack_per_box numeric default 1,
+  spec text,
+  retail numeric default 0,
+  restaurant numeric default 0,
+  mart numeric default 0,
+  wholesale numeric default 0,
+  vip numeric default 0,
+  stock_pack numeric default 0,
+  active boolean default true,
+  updated_at timestamptz default now()
+);
+
+create table if not exists message_templates (
+  id uuid primary key default gen_random_uuid(),
+  code text unique not null,
+  title text,
+  message_th text,
+  message_ko text,
+  active boolean default true,
+  updated_at timestamptz default now()
+);
