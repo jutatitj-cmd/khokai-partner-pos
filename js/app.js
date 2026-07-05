@@ -20,7 +20,7 @@ const seed={
  ],
  orders:[]
 };
-function load(){const raw=localStorage.getItem(LS);if(!raw){const s=structuredClone(seed);makeDemoOrders(s);localStorage.setItem(LS,JSON.stringify(s));return s}return JSON.parse(raw)}
+function load(){try{const raw=localStorage.getItem(LS);if(!raw){const s=JSON.parse(JSON.stringify(seed));makeDemoOrders(s);localStorage.setItem(LS,JSON.stringify(s));return s}return JSON.parse(raw)}catch(e){console.warn('reset db',e);localStorage.removeItem(LS);const s=JSON.parse(JSON.stringify(seed));makeDemoOrders(s);localStorage.setItem(LS,JSON.stringify(s));return s}}
 function save(){localStorage.setItem(LS,JSON.stringify(db))}
 function makeDemoOrders(s){const dates=['2026-06-12','2026-06-22','2026-07-02','2026-07-05','2026-05-17','2026-04-04'];let i=1;for(const d of dates){const p=s.partners[i%3];const prod=s.products[i%s.products.length];const qty=i%2?2:1;const pack=qty*(prod.box_qty||1);const unit=prod.prices[p.tier];s.orders.push({id:'ord'+i,no:'B2B-2607-'+String(i).padStart(4,'0'),date:d,partner_id:p.id,status:i%3?'delivered':'open',payment_status:i%2?'paid':'unpaid',due_date:new Date(new Date(d).getTime()+p.credit_days*86400000).toISOString().slice(0,10),paid_date:i%2?new Date(new Date(d).getTime()+Math.ceil(p.payment_avg_days)*86400000).toISOString().slice(0,10):'',items:[{product_id:prod.id,sell_unit:'box',qty,pack_qty:pack,unit_price:unit,line_total:pack*unit}],total:pack*unit}) ;i++}}
 let db=load();
@@ -54,4 +54,4 @@ function exportTax(id,type){const o=db.orders.find(x=>x.id===id),p=partner(o.par
 function newPartner(){const name=prompt('ชื่อ Partner');if(!name)return;db.partners.push({id:uid('pt'),name,tier:'restaurant',phone:'',address:'',seller:'',credit_days:7,route_day:'',payment_avg_days:0,balance:0,tax_type:'tax_invoice',biz_no:''});save();render()}
 function newProduct(){alert('V2 draft: เพิ่ม/แก้ Product เต็มรูปแบบจะเปิดใน V2.1 ตอนนี้ดู Product Master และราคา Tier ได้ก่อน')}
 function openSettings(){alert('V2 ใช้ LocalStorage ก่อน ถ้าจะต่อ Supabase ให้รัน supabase/schema.sql แล้วเราจะใส่ URL + anon key ใน V2.1')}
-render();
+try{render()}catch(e){document.body.innerHTML='<div style="padding:20px;font-family:system-ui;color:#111"><h2>KHOKAI ERP Lite เปิดไม่ได้</h2><p>'+e.message+'</p><button onclick="localStorage.removeItem(\'khokai_partner_pos_v2\');location.reload()">Reset ข้อมูลทดลอง</button></div>';console.error(e)}
