@@ -1,5 +1,3 @@
-# KHOKAI ERP Lite V2 Hotfix
+# KHOKAI ERP Lite V2.1
 
-แก้ปัญหาหน้าขาว: เพิ่ม loading/error fallback, localStorage reset, และไม่ใช้ structuredClone
-
-Upload ไฟล์ทั้งหมดในโฟลเดอร์นี้ขึ้น GitHub root ทับของเดิม
+Mobile-first Partner POS. V2.1 adds daily order summary, copy message for Page/Kakao, tracking number input, and OMS export by order/day.
