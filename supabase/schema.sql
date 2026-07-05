@@ -99,3 +99,30 @@ create table if not exists message_templates (
   active boolean default true,
   updated_at timestamptz default now()
 );
+
+-- V2.1.5 Partner POS temporary orders, separated from Mini POS
+create table if not exists khokai_partner_orders (
+  id uuid primary key default gen_random_uuid(),
+  local_id text,
+  order_no text unique not null,
+  order_date date default current_date,
+  status text default 'draft',
+  partner_id text,
+  payment_status text default 'pending',
+  delivery_date date,
+  delivery_method text default 'parcel',
+  subtotal numeric default 0,
+  shipping_fee numeric default 0,
+  total numeric default 0,
+  weight_kg numeric default 0,
+  payment_name text,
+  payment_datetime timestamptz,
+  payment_amount numeric default 0,
+  items jsonb default '[]'::jsonb,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create or replace view v_box_rules as
+select 'parcel'::text as method, 15::numeric as max_weight_kg, 4000::numeric as shipping_fee
+where not exists (select 1 from information_schema.tables where table_name='box_rules');
