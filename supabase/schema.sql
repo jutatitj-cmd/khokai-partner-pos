@@ -126,3 +126,9 @@ create table if not exists khokai_partner_orders (
 create or replace view v_box_rules as
 select 'parcel'::text as method, 15::numeric as max_weight_kg, 4000::numeric as shipping_fee
 where not exists (select 1 from information_schema.tables where table_name='box_rules');
+
+
+-- V2.1.7 customer-facing shipping fields
+alter table if exists khokai_partner_orders add column if not exists shipping_mode text default 'free';
+alter table if exists khokai_partner_orders add column if not exists shipping_boxes numeric default 0;
+alter table if exists khokai_partner_orders add column if not exists customer_box_fee numeric default 0;
