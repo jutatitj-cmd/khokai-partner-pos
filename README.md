@@ -1,7 +1,3 @@
-# KHOKAI Partner POS V17.0.16
+# KHOKAI Partner POS V17.0.13
 
-Hotfix:
-- New order no longer saves an empty order immediately.
-- Quick add product is forced to target the current quick order.
-- Exposes add product handlers for inline/button fallback.
-- Keeps V17.0.15 UI.
+Hotfix: restore delivery buttons, default parcel, and make product selection independent.
