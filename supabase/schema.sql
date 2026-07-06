@@ -132,3 +132,14 @@ where not exists (select 1 from information_schema.tables where table_name='box_
 alter table if exists khokai_partner_orders add column if not exists shipping_mode text default 'free';
 alter table if exists khokai_partner_orders add column if not exists shipping_boxes numeric default 0;
 alter table if exists khokai_partner_orders add column if not exists customer_box_fee numeric default 0;
+
+-- V2.1.9 Product Options support for Partner POS
+-- ใช้กับตารางหลัก product_options ถ้ามีอยู่แล้ว
+alter table if exists product_options add column if not exists pick_name text;
+alter table if exists product_options add column if not exists pick_name_th text;
+alter table if exists product_options add column if not exists partner_pos_enabled boolean default false;
+
+-- compatibility for older singular table
+alter table if exists product_option add column if not exists pick_name text;
+alter table if exists product_option add column if not exists pick_name_th text;
+alter table if exists product_option add column if not exists partner_pos_enabled boolean default false;

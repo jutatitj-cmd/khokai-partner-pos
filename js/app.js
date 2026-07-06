@@ -1,8 +1,8 @@
 const App = { page:'quick', selectedOrder:null, draftUnit:'bag', draftQty:1, syncing:false };
-const LS = 'khokai_partner_pos_v218';
-const OLD_LS = 'khokai_partner_pos_v217';
-const CFG = 'khokai_partner_cfg_v218';
-const OLD_CFG = 'khokai_partner_cfg_v217';
+const LS = 'khokai_partner_pos_v219';
+const OLD_LS = 'khokai_partner_pos_v218';
+const CFG = 'khokai_partner_cfg_v219';
+const OLD_CFG = 'khokai_partner_cfg_v218';
 const fmt = n => '₩ ' + Number(n||0).toLocaleString('ko-KR');
 const today = () => new Date().toISOString().slice(0,10);
 const uid = p => p + '-' + Math.random().toString(36).slice(2,8);
@@ -48,12 +48,12 @@ function safeOrder(){
   return draft;
 }
 function nav(){ return [['quick','ด่วน'],['history','ประวัติ'],['ship','รวม/OMS'],['orders','Order'],['partners','Partner'],['products','Product'],['settings','ตั้งค่า']].map(([p,t])=>`<button class="${App.page===p?'active':''}" onclick="go('${p}')">${t}</button>`).join(''); }
-function header(){ return `<div class="top"><div class="top-inner compact-head"><div><div class="brand small-brand">KHOKAI ERP Lite · เปิดออเดอร์ด่วน</div><div class="tag small-tag">V2.1.8</div></div></div><div class="nav no-print">${nav()}</div></div>`; }
+function header(){ return `<div class="top"><div class="top-inner compact-head"><div><div class="brand small-brand">KHOKAI ERP Lite · เปิดออเดอร์ด่วน</div><div class="tag small-tag">V2.1.9</div></div></div><div class="nav no-print">${nav()}</div></div>`; }
 function bottom(){ return `<div class="bottom-bar no-print">${nav()}</div>`; }
 function go(p){ App.page=p; App.selectedOrder=null; render(); }
 function render(){ document.body.innerHTML = header()+`<main class="app">${pages[App.page]()}</main>`+bottom(); }
 const pages = {quick, history, ship, orders, partners, products, settings};
-function productOptions(){ return db.products.map(p=>`<option value="${p.id}">${p.name_th||p.name_ko||p.sku}</option>`).join(''); }
+function productOptions(){ const list=db.products.filter(p=>p.partner_enabled!==false); if(!list.length) return '<option value="">ยังไม่ได้เปิดขายสินค้าในโมดูลนี้</option>'; return list.map(p=>`<option value="${p.id}">${p.name_th||p.name_ko||p.sku}</option>`).join(''); }
 function unitButtons(){ return `<div class="seg unit-mini"><button type="button" class="${App.draftUnit==='bag'?'on':''}" onclick="setUnit('bag')">ถุง</button><button type="button" class="${App.draftUnit==='box'?'on':''}" onclick="setUnit('box')">ลัง</button></div>`; }
 function qtyControl(){ return `<div class="qtybox qty-inline"><button type="button" class="qtybtn" onclick="setQty(App.draftQty-1)">−</button><input class="input qty-input compact-qty" id="qty" type="number" min="1" value="${App.draftQty}" onchange="setQty(this.value)"><button type="button" class="qtybtn" onclick="setQty(App.draftQty+1)">+</button><button type="button" class="plus-chip" onclick="addQty(5)">+5</button><button type="button" class="plus-chip" onclick="addQty(10)">+10</button></div>`; }
 function addProductBlock(oid){ return `<div class="addbox"><div class="form-grid v214-grid"><div><label>สินค้า</label><select id="pselect">${productOptions()}</select></div><div><label>หน่วย</label>${unitButtons()}</div><div><label>จำนวน</label>${qtyControl()}</div><div class="end"><button class="small-action" onclick="addItem('${oid}')">+ เพิ่มสินค้า</button></div></div></div>`; }
@@ -61,7 +61,7 @@ function setUnit(v){ App.draftUnit=v; render(); }
 function setQty(v){ App.draftQty=Math.max(1, Number(v||1)); render(); }
 function addQty(n){ App.draftQty=Math.max(1, Number(App.draftQty||1)+Number(n||0)); render(); }
 function addItem(oid){
-  const order = db.orders.find(x=>x.id===oid); const pr=product(document.getElementById('pselect').value); if(!order||!pr) return;
+  const order = db.orders.find(x=>x.id===oid); const sel=document.getElementById('pselect'); const pr=sel&&sel.value?product(sel.value):null; if(!order||!pr){ alert('ยังไม่ได้เปิดขายสินค้าในโมดูลนี้'); return; }
   const sell_unit=App.draftUnit || 'bag'; const qty=Number(App.draftQty||1); const pack_qty=sell_unit==='box' ? qty*boxQty(pr) : qty; const unit_price=priceOf(pr, defaultTier(order));
   order.items.push({product_id:pr.id,sell_unit,box_qty_used:sell_unit==='box'?boxQty(pr):1,qty,pack_qty,unit_price,line_total:pack_qty*unit_price});
   calc(order); App.draftQty=1; save(); render();
@@ -103,19 +103,26 @@ function addPartner(){
   const p={id:uid('pt'),name,tier:document.getElementById('newPartnerTier').value,phone:document.getElementById('newPartnerPhone').value.trim(),channel:document.getElementById('newPartnerChannel').value,address:document.getElementById('newPartnerAddress').value.trim(),credit_days:0,balance:0,biz_no:''};
   db.partners.unshift(p); save(); render();
 }
-function products(){ return `<div class="title">Product Master</div><div class="card clean-card"><div class="sub">สินค้า Sync อัตโนมัติจาก Supabase เมื่อเปิดระบบ</div><div class="list" style="margin-top:10px">${db.products.map(p=>`<div class="list-item"><div style="flex:1"><b>${p.name_th||p.name_ko}</b><div class="sub">${p.name_ko||''} · SKU ${p.sku||''}<br>옵션ID ${p.option_id||''} · 노출상품ID ${p.display_product_id||''}<br>${p.box_qty}/ลัง</div></div></div>`).join('')}</div></div>`; }
+function products(){ return `<div class="title">Product Master</div><div class="card clean-card"><div class="sub">ดึง product_options ทั้งหมดจาก Supabase แล้วเลือกเปิดขายเฉพาะ option ที่ใช้ใน Partner POS</div><div class="list" style="margin-top:10px">${db.products.map(p=>`<div class="list-item"><div style="flex:1"><b>${p.name_th||p.name_ko}</b><div class="sub">${p.name_ko||''} · SKU ${p.sku||''}<br>옵션ID ${p.option_id||''} · 노출상품ID ${p.display_product_id||''}<br>${p.box_qty}/ลัง</div></div><button class="tiny ${p.partner_enabled!==false?'':'ghost'}" onclick="toggleProductEnabled('${p.id}')">${p.partner_enabled!==false?'เปิดขาย':'ปิดอยู่'}</button></div>`).join('')}</div></div>`; }
+function toggleProductEnabled(id){ const p=db.products.find(x=>x.id===id); if(!p)return; p.partner_enabled = p.partner_enabled===false ? true : false; saveProductEnabledMap(); save(); render(); }
+function productKey(p){ return String(p.option_id||p.sku||p.id||''); }
+function loadProductEnabledMap(){ try{return JSON.parse(localStorage.getItem('khokai_partner_product_enabled')||'{}')}catch(e){return {}} }
+function saveProductEnabledMap(){ const m={}; db.products.forEach(p=>{m[productKey(p)]=p.partner_enabled!==false}); localStorage.setItem('khokai_partner_product_enabled', JSON.stringify(m)); }
 function settings(){ const c=cfg(); return `<div class="title">ตั้งค่า</div><div class="card clean-card"><div class="form-grid"><div><label>Supabase URL</label><input class="input" id="supUrl" value="${c.url||''}"></div><div><label>Supabase anon key</label><input class="input" id="supKey" value="${c.key||''}"></div><div><label>Tracking base URL</label><input class="input" id="trackBase" value="${c.tracking_base||''}" placeholder="https://xxxx.netlify.app"></div><div><label>ค่าส่งที่เก็บลูกค้าต่อ 1 ลัง</label><input class="input" id="custBoxFee" type="number" value="${c.customer_box_fee||0}"></div><div class="end"><button onclick="saveSettings()">บันทึกตั้งค่า</button></div></div><div class="row" style="margin-top:10px"><button class="btn-danger tiny" onclick="localStorage.removeItem(LS);location.reload()">Reset ข้อมูลทดลอง</button></div><div class="sub" style="margin-top:10px">สินค้าและ box rules จะ Sync อัตโนมัติจาก Supabase เมื่อเปิดระบบ ไม่ต้องกด Sync ทีละเครื่อง</div></div>`; }
 function saveSettings(){ saveCfg({url:document.getElementById('supUrl').value.trim(),key:document.getElementById('supKey').value.trim(),tracking_base:document.getElementById('trackBase').value.trim(),customer_box_fee:Number(document.getElementById('custBoxFee').value||0)}); db.orders.forEach(o=>{o.customer_box_fee=Number(cfg().customer_box_fee||0); calc(o)}); save(); alert('บันทึกแล้ว'); autoSyncAll(true); render(); }
 function supa(){ const c=cfg(); if(!c.url||!c.key) return null; return supabase.createClient(c.url,c.key); }
 async function syncProductOption(silent=false){
   const client=supa();
   if(!client){ if(!silent) alert('ใส่ Supabase URL และ anon key ในตั้งค่าก่อน'); return; }
-  let res=await client.from('v_product_options').select('*').limit(500);
-  if(res.error){ res=await client.from('product_option').select('*').eq('active',true).limit(500); }
+  // V2.1.9: ดึง product_options ทั้งหมดก่อน ไม่กรอง active เพื่อให้เลือกเปิดขายเฉพาะโมดูลนี้เอง
+  let res=await client.from('product_options').select('*').limit(1000);
+  if(res.error){ res=await client.from('product_option').select('*').limit(1000); }
+  if(res.error){ res=await client.from('v_product_options').select('*').limit(1000); }
   if(res.error){ if(!silent) alert('Sync สินค้าไม่ได้: '+res.error.message); return; }
 
   const aliases = await loadProductAliases(client);
-  db.products=(res.data||[]).map(r=>normProduct(r, aliases));
+  const enabledMap = loadProductEnabledMap();
+  db.products=(res.data||[]).map(r=>normProduct(r, aliases, enabledMap));
   save();
   if(!silent) alert('Sync สินค้าแล้ว '+db.products.length+' รายการ');
   if(!silent) render();
@@ -160,17 +167,42 @@ function sizeTextFromRow(r){
   return '';
 }
 function thaiNameFromRow(r, aliases){
+  // ชื่อไทยสำหรับหยิบ/ขาย: ใช้คอลัมน์ใหม่ที่เป็นชื่อสินค้าเพียว ๆ คู่กับ pick_name ก่อน
+  const pure=[r.pick_name_th,r.pick_th,r.product_pick_name_th,r.product_name_pure_th,r.pure_name_th,r.short_name_th,r.name_th,r.product_name_th,r.thai_name]
+    .find(v=>v && /[ก-๙]/.test(String(v)));
+  if(pure) return String(pure).trim();
   const alias=aliasNameForRow(r, aliases); if(alias) return alias;
-  const raw=[r.product_name_th,r.name_th,r.thai_name].find(v=>v && /[ก-๙]/.test(String(v))); if(raw) return raw;
-  const hay=String([r.sku,r.option_id,r.product_name,r.product_name_ko,r.name_ko,r.product_name_kr,r.option_name,r.option_value].filter(Boolean).join(' ')).toLowerCase();
+  const hay=String([r.sku,r.option_id,r.pick_name,r.product_name,r.product_name_ko,r.name_ko,r.product_name_kr,r.option_name,r.option_value].filter(Boolean).join(' ')).toLowerCase();
   const size=sizeTextFromRow(r);
   if(hay.includes('muyo')||hay.includes('여우')||hay.includes('หมูยอ')) return 'หมูยอ ' + (size||'700g');
   if(hay.includes('cart')||hay.includes('3호')||hay.includes('เอ็น')) return 'ลูกชิ้นเอ็นไก่ ' + (size||'1kg');
   if(hay.includes('mix')||hay.includes('2호')||hay.includes('หมู+ไก')) return 'ลูกชิ้นหมู+ไก่ ' + (size||'1kg');
   if(hay.includes('pork')||hay.includes('돼지')||hay.includes('pig')||hay.includes('หมู')) return 'ลูกชิ้นหมูพรีเมียม ' + (size||'1kg');
-  return r.product_name||r.name||r.sku||'';
+  return r.pick_name||r.product_name||r.name||r.sku||'';
 }
-function normProduct(r, aliases){ const base=Number(r.box_qty||r.pack_per_box||r.packs_per_box||1)||1; const retail=Number(r.tier_retail||r.retail_price||r.retail||r.price||0)||0; const restaurant=Number(r.tier_restaurant||r.restaurant_price||r.restaurant||r.partner_price||retail)||retail; const mart=Number(r.tier_mart||r.mart_price||r.mart||restaurant)||restaurant; const wholesale=Number(r.tier_wholesale||r.wholesale_price||r.wholesale||mart)||mart; const vip=Number(r.tier_vip||r.vip_price||r.vip||wholesale)||wholesale; return {id:String(r.id||r.option_id||r.sku),sku:r.sku||r.product_sku||'',option_id:r.option_id||r.coupang_option_id||'',display_product_id:r.display_product_id||r.exposed_product_id||r.nochul_product_id||'',name_th:thaiNameFromRow(r, aliases),name_ko:r.product_name_ko||r.name_ko||r.product_name_kr||r.product_name||r.sku||'',box_qty:base,weight_kg:Number(r.weight_kg||r.weight||r.unit_weight_kg||0)||0,prices:{retail,restaurant,mart,wholesale,vip},raw:r}; }
+function koNameFromRow(r){
+  return r.pick_name || r.product_pick_name_ko || r.product_name_ko || r.name_ko || r.product_name_kr || r.product_name || r.name || r.sku || '';
+}
+function enabledFromRow(r, enabledMap, key){
+  if(Object.prototype.hasOwnProperty.call(enabledMap,key)) return !!enabledMap[key];
+  if(r.partner_pos_enabled!==undefined && r.partner_pos_enabled!==null) return !!r.partner_pos_enabled;
+  if(r.b2b_enabled!==undefined && r.b2b_enabled!==null) return !!r.b2b_enabled;
+  if(r.partner_enabled!==undefined && r.partner_enabled!==null) return !!r.partner_enabled;
+  return false;
+}
+function normProduct(r, aliases, enabledMap={}){
+  const base=Number(r.box_qty||r.pack_per_box||r.packs_per_box||1)||1;
+  const retail=Number(r.tier_retail||r.retail_price||r.retail||r.price||0)||0;
+  const restaurant=Number(r.tier_restaurant||r.restaurant_price||r.restaurant||r.partner_price||retail)||retail;
+  const mart=Number(r.tier_mart||r.mart_price||r.mart||restaurant)||restaurant;
+  const wholesale=Number(r.tier_wholesale||r.wholesale_price||r.wholesale||mart)||mart;
+  const vip=Number(r.tier_vip||r.vip_price||r.vip||wholesale)||wholesale;
+  const option_id=r.option_id||r.coupang_option_id||'';
+  const id=String(r.id||option_id||r.sku);
+  const tmp={id, option_id, sku:r.sku||r.product_sku||''};
+  const key=productKey(tmp);
+  return {id,sku:r.sku||r.product_sku||'',option_id,display_product_id:r.display_product_id||r.exposed_product_id||r.nochul_product_id||'',name_th:thaiNameFromRow(r, aliases),name_ko:koNameFromRow(r),box_qty:base,weight_kg:Number(r.weight_kg||r.weight||r.unit_weight_kg||0)||0,partner_enabled:enabledFromRow(r,enabledMap,key),prices:{retail,restaurant,mart,wholesale,vip},raw:r};
+}
 async function saveDraftToSupabase(id){ const order=db.orders.find(x=>x.id===id); const client=supa(); if(!client){ alert('ยังไม่ได้ตั้งค่า Supabase'); return; } calc(order); const payload={local_id:order.id,order_no:order.no,order_date:order.date,status:order.status,partner_id:order.partner_id||null,payment_status:order.payment_status,delivery_date:order.delivery_date||null,delivery_method:order.delivery_method||'parcel',subtotal:order.subtotal||0,shipping_fee:order.shipping_fee||0,total:order.total||0,weight_kg:order.weight_kg||0,shipping_mode:order.shipping_mode||'free',shipping_boxes:order.shipping_boxes||0,customer_box_fee:order.customer_box_fee||0,payment_name:order.payment_name||null,payment_datetime:order.payment_datetime||null,payment_amount:order.payment_amount||0,items:order.items}; const {error}=await client.from('khokai_partner_orders').upsert(payload,{onConflict:'order_no'}); if(error){ alert('บันทึก Supabase ไม่ได้: '+error.message+'\nให้รัน supabase/schema.sql เวอร์ชันใหม่ก่อน'); return; } alert('บันทึกออเดอร์ชั่วคราวแล้ว'); }
 function csvCell(v){ return '"'+String(v??'').replace(/"/g,'""')+'"'; }
 function download(name,rows){ const csv=rows.map(r=>r.map(csvCell).join(',')).join('\n'); const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); }
