@@ -1,3 +1,3 @@
-# KHOKAI Partner POS V17.0.13
+# KHOKAI Partner POS V17.0.14
 
-Hotfix: restore delivery buttons, default parcel, and make product selection independent.
+Direct add product hotfix.
