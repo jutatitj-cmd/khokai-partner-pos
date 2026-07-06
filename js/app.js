@@ -1,8 +1,13 @@
 const App = { page:'quick', selectedOrder:null, draftUnit:'bag', draftQty:1, syncing:false };
-const LS = 'khokai_partner_pos_v219';
-const OLD_LS = 'khokai_partner_pos_v218';
-const CFG = 'khokai_partner_cfg_v219';
-const OLD_CFG = 'khokai_partner_cfg_v218';
+const LS = 'khokai_partner_pos_v220';
+const OLD_LS = 'khokai_partner_pos_v219';
+const CFG = 'khokai_partner_cfg_v220';
+const OLD_CFG = 'khokai_partner_cfg_v219';
+// ใส่ค่า Supabase ตรงนี้ครั้งเดียวในโค้ด แล้วทุกเครื่องจะต่อให้อัตโนมัติ
+// หมายเหตุ: anon key เป็น public key ตามปกติของ Supabase frontend
+const BUILTIN_SUPABASE_URL = window.KHOKAI_SUPABASE_URL || '';
+const BUILTIN_SUPABASE_ANON_KEY = window.KHOKAI_SUPABASE_ANON_KEY || '';
+
 const fmt = n => '₩ ' + Number(n||0).toLocaleString('ko-KR');
 const today = () => new Date().toISOString().slice(0,10);
 const uid = p => p + '-' + Math.random().toString(36).slice(2,8);
@@ -24,7 +29,17 @@ const seed = {
 let db = load();
 function load(){ try{ return JSON.parse(localStorage.getItem(LS)) || JSON.parse(localStorage.getItem(OLD_LS)) || structuredClone(seed); }catch(e){ return JSON.parse(JSON.stringify(seed)); } }
 function save(){ localStorage.setItem(LS, JSON.stringify(db)); }
-function cfg(){ try{return JSON.parse(localStorage.getItem(CFG))||JSON.parse(localStorage.getItem(OLD_CFG))||{tracking_base:'', customer_box_fee:0}}catch(e){return{tracking_base:'', customer_box_fee:0}} }
+function cfg(){
+  try{
+    const saved = JSON.parse(localStorage.getItem(CFG)) || JSON.parse(localStorage.getItem(OLD_CFG)) || {};
+    return {
+      url: saved.url || BUILTIN_SUPABASE_URL || '',
+      key: saved.key || BUILTIN_SUPABASE_ANON_KEY || '',
+      tracking_base: saved.tracking_base || '',
+      customer_box_fee: Number(saved.customer_box_fee||0)
+    };
+  }catch(e){return{url:BUILTIN_SUPABASE_URL||'',key:BUILTIN_SUPABASE_ANON_KEY||'',tracking_base:'', customer_box_fee:0}}
+}
 function saveCfg(c){ localStorage.setItem(CFG, JSON.stringify(c)); }
 const partner = id => db.partners.find(x=>x.id===id);
 const product = id => db.products.find(x=>x.id===id);
@@ -48,7 +63,7 @@ function safeOrder(){
   return draft;
 }
 function nav(){ return [['quick','ด่วน'],['history','ประวัติ'],['ship','รวม/OMS'],['orders','Order'],['partners','Partner'],['products','Product'],['settings','ตั้งค่า']].map(([p,t])=>`<button class="${App.page===p?'active':''}" onclick="go('${p}')">${t}</button>`).join(''); }
-function header(){ return `<div class="top"><div class="top-inner compact-head"><div><div class="brand small-brand">KHOKAI ERP Lite · เปิดออเดอร์ด่วน</div><div class="tag small-tag">V2.1.9</div></div></div><div class="nav no-print">${nav()}</div></div>`; }
+function header(){ return `<div class="top"><div class="top-inner compact-head"><div><div class="brand small-brand">KHOKAI ERP Lite · เปิดออเดอร์ด่วน</div><div class="tag small-tag">V2.2.0</div></div></div><div class="nav no-print">${nav()}</div></div>`; }
 function bottom(){ return `<div class="bottom-bar no-print">${nav()}</div>`; }
 function go(p){ App.page=p; App.selectedOrder=null; render(); }
 function render(){ document.body.innerHTML = header()+`<main class="app">${pages[App.page]()}</main>`+bottom(); }
@@ -103,12 +118,17 @@ function addPartner(){
   const p={id:uid('pt'),name,tier:document.getElementById('newPartnerTier').value,phone:document.getElementById('newPartnerPhone').value.trim(),channel:document.getElementById('newPartnerChannel').value,address:document.getElementById('newPartnerAddress').value.trim(),credit_days:0,balance:0,biz_no:''};
   db.partners.unshift(p); save(); render();
 }
-function products(){ return `<div class="title">Product Master</div><div class="card clean-card"><div class="sub">ดึง product_options ทั้งหมดจาก Supabase แล้วเลือกเปิดขายเฉพาะ option ที่ใช้ใน Partner POS</div><div class="list" style="margin-top:10px">${db.products.map(p=>`<div class="list-item"><div style="flex:1"><b>${p.name_th||p.name_ko}</b><div class="sub">${p.name_ko||''} · SKU ${p.sku||''}<br>옵션ID ${p.option_id||''} · 노출상품ID ${p.display_product_id||''}<br>${p.box_qty}/ลัง</div></div><button class="tiny ${p.partner_enabled!==false?'':'ghost'}" onclick="toggleProductEnabled('${p.id}')">${p.partner_enabled!==false?'เปิดขาย':'ปิดอยู่'}</button></div>`).join('')}</div></div>`; }
-function toggleProductEnabled(id){ const p=db.products.find(x=>x.id===id); if(!p)return; p.partner_enabled = p.partner_enabled===false ? true : false; saveProductEnabledMap(); save(); render(); }
+function products(){ return `<div class="title">Product Master</div><div class="card clean-card"><div class="sub">ดึง product_options ทั้งหมดจาก Supabase แล้วเลือกเปิดขายเฉพาะ option ที่ใช้ใน Partner POS · แก้ชื่อไทย/จำนวนต่อลังได้ตรงนี้</div><div class="list product-edit-list" style="margin-top:10px">${db.products.map(p=>`<div class="list-item product-edit-item"><div style="flex:1"><b>${p.name_th||p.name_ko}</b><div class="sub ko-line">${p.name_ko||''}</div><div class="sub">SKU ${p.sku||''}<br>옵션ID ${p.option_id||''} · 노출상품ID ${p.display_product_id||''}</div><div class="product-edit-grid"><div><label>ชื่อไทย</label><input class="input" value="${escAttr(p.name_th||'')}" onchange="editProduct('${p.id}','name_th',this.value)"></div><div><label>จำนวน/ลัง</label><input class="input" type="number" min="1" value="${Number(p.box_qty||1)}" onchange="editProduct('${p.id}','box_qty',this.value)"></div></div></div><div class="product-actions"><button class="tiny ${p.partner_enabled!==false?'':'ghost'}" onclick="toggleProductEnabled('${p.id}')">${p.partner_enabled!==false?'เปิดขาย':'ปิดอยู่'}</button><button class="tiny ghost" onclick="saveProductOptionToSupabase('${p.id}')">บันทึก DB</button></div></div>`).join('')}</div></div>`; }
+function escAttr(v){ return String(v||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+function editProduct(id,field,value){ const p=db.products.find(x=>x.id===id); if(!p)return; if(field==='box_qty') p.box_qty=Math.max(1,Number(value||1)); else p[field]=value; save(); }
+async function saveProductOptionToSupabase(id){ const p=db.products.find(x=>x.id===id); const client=supa(); if(!p||!client){ alert('ยังไม่ได้ต่อ Supabase'); return; } const payload={pick_name_th:p.name_th, partner_pos_enabled:p.partner_enabled!==false, partner_box_qty:Number(p.box_qty||1)}; let q=client.from('product_options').update(payload); if(p.option_id) q=q.eq('option_id',p.option_id); else if(p.sku) q=q.eq('sku',p.sku); else q=q.eq('id',p.id); const {error}=await q; if(error){ alert('บันทึก DB ไม่ได้: '+error.message+'\nให้รัน supabase/schema.sql V2.2.0 ก่อน'); return; } alert('บันทึกสินค้าแล้ว'); }
+
+async function toggleProductEnabled(id){ const p=db.products.find(x=>x.id===id); if(!p)return; p.partner_enabled = p.partner_enabled===false ? true : false; saveProductEnabledMap(); save(); render(); if(supa()) await saveProductOptionToSupabase(id); }
 function productKey(p){ return String(p.option_id||p.sku||p.id||''); }
 function loadProductEnabledMap(){ try{return JSON.parse(localStorage.getItem('khokai_partner_product_enabled')||'{}')}catch(e){return {}} }
 function saveProductEnabledMap(){ const m={}; db.products.forEach(p=>{m[productKey(p)]=p.partner_enabled!==false}); localStorage.setItem('khokai_partner_product_enabled', JSON.stringify(m)); }
-function settings(){ const c=cfg(); return `<div class="title">ตั้งค่า</div><div class="card clean-card"><div class="form-grid"><div><label>Supabase URL</label><input class="input" id="supUrl" value="${c.url||''}"></div><div><label>Supabase anon key</label><input class="input" id="supKey" value="${c.key||''}"></div><div><label>Tracking base URL</label><input class="input" id="trackBase" value="${c.tracking_base||''}" placeholder="https://xxxx.netlify.app"></div><div><label>ค่าส่งที่เก็บลูกค้าต่อ 1 ลัง</label><input class="input" id="custBoxFee" type="number" value="${c.customer_box_fee||0}"></div><div class="end"><button onclick="saveSettings()">บันทึกตั้งค่า</button></div></div><div class="row" style="margin-top:10px"><button class="btn-danger tiny" onclick="localStorage.removeItem(LS);location.reload()">Reset ข้อมูลทดลอง</button></div><div class="sub" style="margin-top:10px">สินค้าและ box rules จะ Sync อัตโนมัติจาก Supabase เมื่อเปิดระบบ ไม่ต้องกด Sync ทีละเครื่อง</div></div>`; }
+function settings(){ const c=cfg(); const connected=!!(c.url&&c.key); return `<div class="title">ตั้งค่า</div><div class="card clean-card"><div class="sub">Supabase: <b>${connected?'เชื่อมต่อแล้ว':'ยังไม่มีค่าเชื่อมต่อในโค้ด/เครื่องนี้'}</b></div><div class="form-grid"><input type="hidden" id="supUrl" value="${escAttr(c.url||'')}"><input type="hidden" id="supKey" value="${escAttr(c.key||'')}"><div><label>Tracking base URL</label><input class="input" id="trackBase" value="${escAttr(c.tracking_base||'')}" placeholder="https://xxxx.netlify.app"></div><div><label>ค่าส่งที่เก็บลูกค้าต่อ 1 ลัง</label><input class="input" id="custBoxFee" type="number" value="${c.customer_box_fee||0}"></div><div class="end"><button onclick="saveSettings()">บันทึกตั้งค่า</button></div></div><div class="row" style="margin-top:10px"><button class="tiny ghost" onclick="autoSyncAll(true).then(()=>{alert('Sync แล้ว');render();})">Sync ตอนนี้</button><button class="btn-danger tiny" onclick="localStorage.removeItem(LS);location.reload()">Reset ข้อมูลทดลอง</button></div><div class="sub" style="margin-top:10px">สินค้าและ box rules จะ Sync อัตโนมัติจาก Supabase เมื่อเปิดระบบ ไม่ต้องกด Sync ทีละเครื่อง</div></div>`; }
+
 function saveSettings(){ saveCfg({url:document.getElementById('supUrl').value.trim(),key:document.getElementById('supKey').value.trim(),tracking_base:document.getElementById('trackBase').value.trim(),customer_box_fee:Number(document.getElementById('custBoxFee').value||0)}); db.orders.forEach(o=>{o.customer_box_fee=Number(cfg().customer_box_fee||0); calc(o)}); save(); alert('บันทึกแล้ว'); autoSyncAll(true); render(); }
 function supa(){ const c=cfg(); if(!c.url||!c.key) return null; return supabase.createClient(c.url,c.key); }
 async function syncProductOption(silent=false){
@@ -168,7 +188,7 @@ function sizeTextFromRow(r){
 }
 function thaiNameFromRow(r, aliases){
   // ชื่อไทยสำหรับหยิบ/ขาย: ใช้คอลัมน์ใหม่ที่เป็นชื่อสินค้าเพียว ๆ คู่กับ pick_name ก่อน
-  const pure=[r.pick_name_th,r.pick_th,r.product_pick_name_th,r.product_name_pure_th,r.pure_name_th,r.short_name_th,r.name_th,r.product_name_th,r.thai_name]
+  const pure=[r.pick_name_th,r.partner_pick_name_th,r.pick_th,r.product_pick_name_th,r.product_name_pure_th,r.pure_name_th,r.short_name_th,r.name_th,r.product_name_th,r.thai_name]
     .find(v=>v && /[ก-๙]/.test(String(v)));
   if(pure) return String(pure).trim();
   const alias=aliasNameForRow(r, aliases); if(alias) return alias;
@@ -184,14 +204,15 @@ function koNameFromRow(r){
   return r.pick_name || r.product_pick_name_ko || r.product_name_ko || r.name_ko || r.product_name_kr || r.product_name || r.name || r.sku || '';
 }
 function enabledFromRow(r, enabledMap, key){
-  if(Object.prototype.hasOwnProperty.call(enabledMap,key)) return !!enabledMap[key];
+  // ใช้ค่าจากฐานข้อมูลก่อน เพื่อให้ทุกเครื่องเห็นสถานะเปิดขายตรงกัน
   if(r.partner_pos_enabled!==undefined && r.partner_pos_enabled!==null) return !!r.partner_pos_enabled;
   if(r.b2b_enabled!==undefined && r.b2b_enabled!==null) return !!r.b2b_enabled;
   if(r.partner_enabled!==undefined && r.partner_enabled!==null) return !!r.partner_enabled;
+  if(Object.prototype.hasOwnProperty.call(enabledMap,key)) return !!enabledMap[key];
   return false;
 }
 function normProduct(r, aliases, enabledMap={}){
-  const base=Number(r.box_qty||r.pack_per_box||r.packs_per_box||1)||1;
+  const base=Number(r.partner_box_qty||r.box_qty||r.pack_per_box||r.packs_per_box||1)||1;
   const retail=Number(r.tier_retail||r.retail_price||r.retail||r.price||0)||0;
   const restaurant=Number(r.tier_restaurant||r.restaurant_price||r.restaurant||r.partner_price||retail)||retail;
   const mart=Number(r.tier_mart||r.mart_price||r.mart||restaurant)||restaurant;

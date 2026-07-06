@@ -143,3 +143,8 @@ alter table if exists product_options add column if not exists partner_pos_enabl
 alter table if exists product_option add column if not exists pick_name text;
 alter table if exists product_option add column if not exists pick_name_th text;
 alter table if exists product_option add column if not exists partner_pos_enabled boolean default false;
+
+-- V2.2.0 Partner POS product option local settings
+alter table if exists product_options add column if not exists partner_pick_name_th text;
+alter table if exists product_options add column if not exists partner_box_qty numeric default 1;
+-- pick_name = ชื่อเกาหลีสำหรับหยิบ/แพ็ก, pick_name_th หรือ partner_pick_name_th = ชื่อไทยสั้นสำหรับ POS
