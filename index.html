@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>KHOKAI Partner POS V17</title>
+<title>KHOKAI Partner POS V17.0.2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
@@ -36,7 +36,7 @@
     <div class="card">
       <div class="quick-head">
         <div class="grow">
-          <div class="mini">ออเดอร์ส่งชั่วคราว</div>
+          <div class="mini">ออเดอร์ชั่วคราว</div>
           <div id="orderNo" class="orderNo">-</div>
         </div>
         <span class="pill">TEMP</span>
@@ -141,7 +141,7 @@
     <div class="card">
       <div class="sectionTitle">ข้อมูลลูกค้า/จัดส่ง</div>
       <div class="grid2">
-        <div><label class="label">Partner</label><select id="partnerSelect"></select></div>
+        <div><label class="label">ชื่อลูกค้า</label><input id="customerName"></div>
         <div><label class="label">ช่องทาง</label><select id="channel"><option>Facebook</option><option>LINE</option><option>Kakao</option><option>Instagram</option><option>โทรศัพท์</option><option>Walk-in</option><option>Event</option><option>ร้านอาหาร</option></select></div>
       </div>
       <label class="label" style="margin-top:8px">ชื่อผู้รับ</label><input id="receiverName">
@@ -194,16 +194,9 @@
     </div>
     <div class="card">
       <div class="sectionTitle">สินค้าใน Partner POS</div>
-      <p class="mini">ชื่อไทย / ราคาส่ง / จำนวนถุงต่อลัง ใช้เฉพาะ Partner POS ไม่กระทบ Mini POS</p>
+      <p class="mini">ชื่อไทยและราคาส่ง ใช้เฉพาะใน Partner POS แต่ยังผูกกับ option_id / display_product_id เดิม</p>
       <div id="productEditList"></div>
       <button id="saveProducts" class="btn ok full" style="margin-top:8px">บันทึกชื่อไทย/ราคาส่ง</button>
-    </div>
-    <div class="card">
-      <div class="sectionTitle">Partner</div>
-      <p class="mini">เพิ่ม Partner ไว้เลือกตอนกรอกหลังโอน</p>
-      <div id="partnerList"></div>
-      <button id="addPartner" class="btn soft full" style="margin-top:8px">+ เพิ่ม Partner</button>
-      <button id="savePartners" class="btn ok full" style="margin-top:8px">บันทึก Partner</button>
     </div>
     <div class="card">
       <div class="sectionTitle">ข้อความเสริม</div>
@@ -247,7 +240,7 @@
 
 <div id="drawer" class="drawer"><div class="panel">
   <div class="bar"><b class="grow">เมนู</b><button id="closeMenu" class="iconbtn">×</button></div>
-  <button data-view="quick" class="btn ghost full">เปิดออเดอร์ด่วน</button>
+  <button data-view="quick" class="btn ghost full">เปิดออเดอร์</button>
   <button data-view="history" class="btn ghost full">ประวัติ</button>
   <button data-view="dashboard" class="btn ghost full">สรุปยอด</button>
   <button data-view="settings" class="btn ghost full">ตั้งค่า</button>
@@ -265,7 +258,8 @@
 <script>
 (function(){
 var LS='khokai_partner_v17_';
-var ORDER_TABLE='khokai_partner_orders';
+var APP_MODE='PARTNER';
+var ORDER_TABLE='khokai_pos_orders';
 var TRACKING_TABLE='khokai_tracking';
 var DEFAULT_SUPABASE_URL='https://wzmzafyccyqdhcbcwkmu.supabase.co';
 var DEFAULT_SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6bXphZnljY3lxZGhjYmN3a211Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxMTMzNjMsImV4cCI6MjA5ODY4OTM2M30.7JC8eR5vwSpIFi2Ykd0Ggzre5HRKfgDGyhfgjxQCzng'; // anon public key
@@ -278,7 +272,7 @@ var defaultProducts=[
 ];
 var defaultUsers=[{username:'admin',password:'1234',sellerCode:'01',tone:'ครับ',role:'admin'},{username:'seller1',password:'1234',sellerCode:'11',tone:'ค่ะ',role:'seller'}];
 var defaultBanks=[{label:'🏦 신한은행 Shinhan Bank',text:'🏦 신한은행 Shinhan Bank\n140013678642\n메콩푸드 주식회사'}];
-var products=load('products',defaultProducts), users=load('users',[]), partners=load('partners',[]), orders=load('orders',[]), extras=load('extras',['โอนแล้ว รบกวนแจ้งสลิป เพื่อทำการจัดส่งสินค้า','สินค้าจัดส่งแบบแช่แข็ง พร้อมไอซ์แพ็ก','รบกวนตรวจสอบชื่อ ที่อยู่ และเบอร์โทรก่อนโอน']), banks=load('banks',defaultBanks);
+var products=load('products',defaultProducts), users=load('users',[]), orders=load('orders',[]), extras=load('extras',['โอนแล้ว รบกวนแจ้งสลิป เพื่อทำการจัดส่งสินค้า','สินค้าจัดส่งแบบแช่แข็ง พร้อมไอซ์แพ็ก','รบกวนตรวจสอบชื่อ ที่อยู่ และเบอร์โทรก่อนโอน']), banks=load('banks',defaultBanks);
 var currentUser=null,currentOrder=null,currentView='quick',editingId=null,ocrImageData=null,historyFilter='ACTIVE',productSheetTarget='quick';
 function $(id){return document.getElementById(id)}
 function load(k,d){try{return JSON.parse(localStorage.getItem(LS+k)||'null')||d}catch(e){return d}}
@@ -291,19 +285,19 @@ function activeProducts(){return products.filter(function(p){return String(p.act
 function productByOpt(opt){return products.find(function(p){return String(p.option_id)===String(opt)})||{thai_name:'สินค้า',page_price:0}}
 function ensureOrder(){
   if(!currentOrder){
-    currentOrder={id:'o_'+Date.now(),order_no:newOrderNo(),status:'TEMP',seller:currentUser.username,sellerCode:currentUser.sellerCode,items:[],shipping:5000,discount:0,extraIndex:0,bankIndex:0,created_at:new Date().toISOString()};
+    currentOrder=markPartnerOrder({id:'p_'+Date.now(),order_no:newOrderNo(),status:'TEMP',seller:currentUser.username,sellerCode:currentUser.sellerCode,items:[],shipping:5000,discount:0,extraIndex:0,bankIndex:0,created_at:new Date().toISOString()});
   }
 }
 function orderTotal(o){var sub=(o.items||[]).reduce(function(s,it){return s+(Number(it.qty)||0)*(Number(it.price)||0)},0);return sub+(Number(o.shipping)||0)-(Number(o.discount)||0)}
-async function saveCurrentTemp(){ensureOrder();if((currentOrder.items||[]).length===0){if(!confirm('ออเดอร์นี้ยังไม่มีสินค้า ต้องการบันทึก TEMP ไว้จริงไหม?'))return}currentOrder.status=currentOrder.status||'TEMP';currentOrder.updated_at=new Date().toISOString();var idx=orders.findIndex(function(o){return o.id===currentOrder.id});if(idx>=0)orders[idx]=currentOrder;else orders.unshift(currentOrder);save('orders',orders);await syncOrderToSupabase(currentOrder);toast(remoteReady?'บันทึกชั่วคราวลง Supabase แล้ว':'บันทึกในเครื่องแล้ว / Supabase: '+(remoteError||'ยังไม่พร้อม'))}
-var autoTimer=null;function autosaveDraft(){ensureOrder();currentOrder.updated_at=new Date().toISOString();var idx=orders.findIndex(function(o){return o.id===currentOrder.id});if(idx>=0)orders[idx]=currentOrder;else orders.unshift(currentOrder);save('orders',orders);clearTimeout(autoTimer);autoTimer=setTimeout(function(){syncOrderToSupabase(currentOrder)},700)}
+async function saveCurrentTemp(){ensureOrder();if((currentOrder.items||[]).length===0){if(!confirm('ออเดอร์นี้ยังไม่มีสินค้า ต้องการบันทึก TEMP ไว้จริงไหม?'))return}markPartnerOrder(currentOrder);currentOrder.status=currentOrder.status||'TEMP';currentOrder.updated_at=new Date().toISOString();var idx=orders.findIndex(function(o){return o.id===currentOrder.id});if(idx>=0)orders[idx]=currentOrder;else orders.unshift(currentOrder);save('orders',orders);await syncOrderToSupabase(currentOrder);toast(remoteReady?'บันทึกชั่วคราวลง Supabase แล้ว':'บันทึกในเครื่องแล้ว / Supabase: '+(remoteError||'ยังไม่พร้อม'))}
+var autoTimer=null;function autosaveDraft(){ensureOrder();markPartnerOrder(currentOrder);currentOrder.updated_at=new Date().toISOString();var idx=orders.findIndex(function(o){return o.id===currentOrder.id});if(idx>=0)orders[idx]=currentOrder;else orders.unshift(currentOrder);save('orders',orders);clearTimeout(autoTimer);autoTimer=setTimeout(function(){syncOrderToSupabase(currentOrder)},700)}
 function renderQuick(){ensureOrder();$('orderNo').textContent=currentOrder.order_no;$('shipping').value=currentOrder.shipping||0;$('discount').value=currentOrder.discount||0;renderItems();renderExtras();renderBankSelect();calcText()}
 function renderItems(){var box=$('items');box.innerHTML='';var items=currentOrder.items||[];$('emptyItems').classList.toggle('hide',items.length>0);items.forEach(function(it,idx){var p=productByOpt(it.option_id);var div=document.createElement('div');div.className='item';div.innerHTML='<div><div class="itemName">'+escapeHtml(p.thai_name||it.name||'สินค้า')+'</div><div class="itemMeta">'+(Number(it.qty)||0)+' x '+money(it.price)+' = '+money((Number(it.qty)||0)*(Number(it.price)||0))+'</div><div class="qtyCtl" style="margin-top:7px"><button class="round minus">−</button><b>'+it.qty+'</b><button class="round plus">+</button><button class="round del" style="margin-left:8px;color:#b91c1c">×</button></div></div><div class="priceLine">'+money((Number(it.qty)||0)*(Number(it.price)||0))+'</div>';box.appendChild(div);div.querySelector('.minus').onclick=function(){it.qty=Math.max(1,(Number(it.qty)||1)-1);calcText();autosaveDraft();renderItems()};div.querySelector('.plus').onclick=function(){it.qty=(Number(it.qty)||0)+1;calcText();autosaveDraft();renderItems()};div.querySelector('.del').onclick=function(){currentOrder.items.splice(idx,1);calcText();autosaveDraft();renderItems()};})}
 function renderExtras(){var sel=$('extraSelect');sel.innerHTML='<option value="-1">ไม่ใส่ข้อความเสริม</option>'+extras.map(function(x,i){return '<option value="'+i+'">'+escapeHtml(x.slice(0,42))+'</option>'}).join('');sel.value=currentOrder.extraIndex==null?0:currentOrder.extraIndex}
 function renderBankSelect(){var sel=$('bankSelect');if(!sel)return;sel.innerHTML=banks.map(function(b,i){return '<option value="'+i+'">'+escapeHtml(b.label||('บัญชี '+(i+1)))+'</option>'}).join('');if(!banks.length){sel.innerHTML='<option value="-1">ยังไม่มีบัญชี</option>'}sel.value=currentOrder.bankIndex==null?0:currentOrder.bankIndex}
 function bankText(idx){var b=banks[Number(idx)||0]||banks[0];return b&&b.text?b.text:''}
 function parseBanks(raw){return String(raw||'').split(/\n\s*\n/).map(function(block){var lines=block.split(/\n/).map(function(x){return x.trim()}).filter(Boolean);return lines.length?{label:lines[0],text:lines.join('\n')}:null}).filter(Boolean)}
-function calcText(){if(!currentOrder)return '';currentOrder.shipping=Number($('shipping').value)||0;currentOrder.discount=Number($('discount').value)||0;currentOrder.extraIndex=Number($('extraSelect').value);currentOrder.bankIndex=Number($('bankSelect')?$('bankSelect').value:0);var tone=currentUser.tone||'';var lines=currentOrder.items||[];var total=orderTotal(currentOrder);$('total').textContent=money(total);$('itemCount').textContent=lines.length+' รายการ';var txt='สรุปออเดอร์ส่ง '+currentOrder.order_no+(tone?tone:'')+'\n\n';lines.forEach(function(it){var p=productByOpt(it.option_id);txt+='• '+(p.thai_name||it.name)+' ×'+it.qty+'\n'});txt+='\nค่าส่ง '+money(currentOrder.shipping);if(currentOrder.discount>0)txt+='\nส่วนลด -'+money(currentOrder.discount);txt+='\n\nรวมยอดโอน '+money(total)+(tone?' '+tone:'');var ex=extras[currentOrder.extraIndex];if(ex)txt+='\n\n'+ex;var bt=bankText(currentOrder.bankIndex);if(bt)txt+='\n\n'+bt;$('customerText').textContent=txt;return txt}
+function calcText(){if(!currentOrder)return '';currentOrder.shipping=Number($('shipping').value)||0;currentOrder.discount=Number($('discount').value)||0;currentOrder.extraIndex=Number($('extraSelect').value);currentOrder.bankIndex=Number($('bankSelect')?$('bankSelect').value:0);var tone=currentUser.tone||'';var lines=currentOrder.items||[];var total=orderTotal(currentOrder);$('total').textContent=money(total);$('itemCount').textContent=lines.length+' รายการ';var txt='สรุปออเดอร์ '+currentOrder.order_no+(tone?tone:'')+'\n\n';lines.forEach(function(it){var p=productByOpt(it.option_id);txt+='• '+(p.thai_name||it.name)+' x '+it.qty+' = '+money(it.qty*it.price)+'\n'});txt+='\nค่าส่ง '+money(currentOrder.shipping);if(currentOrder.discount>0)txt+='\nส่วนลด -'+money(currentOrder.discount);txt+='\n\nรวมยอดโอน '+money(total)+(tone?' '+tone:'');var ex=extras[currentOrder.extraIndex];if(ex)txt+='\n\n'+ex;var bt=bankText(currentOrder.bankIndex);if(bt)txt+='\n\n'+bt;$('customerText').textContent=txt;return txt}
 async function showView(v){if(v==='settings'&&!isAdmin()){toast('เมนูตั้งค่าใช้ได้เฉพาะ admin');v='quick'}currentView=v;['Quick','History','Detail','Dashboard','Settings'].forEach(function(n){$('view'+n).classList.add('hide')});var map={quick:'Quick',history:'History',detail:'Detail',dashboard:'Dashboard',settings:'Settings'};$('view'+map[v]).classList.remove('hide');document.querySelectorAll('.navbtn').forEach(function(b){b.classList.toggle('active',b.dataset.view===v)});$('fab').classList.toggle('hide',v!=='quick');if(v==='history'){await fetchOrdersFromSupabase();renderHistory()}if(v==='dashboard'){await fetchOrdersFromSupabase();renderDashboard()}if(v==='settings')renderSettings();closeDrawer()}
 function statusClass(st){st=String(st||'TEMP');if(st==='PAID'||st==='COMPLETED'||st==='SHIPPED')return 'paid';if(st==='CANCELLED')return 'cancel';return ''}
 function statusLabel(st){if(st==='COMPLETED')return 'PAID';return st||'TEMP'}
@@ -353,24 +347,42 @@ function saveDetailAmounts(){var o=detailOrder();if(!o||!canEditOrder(o))return;
 function cancelOrder(id){var o=orders.find(function(x){return x.id===id});if(!o)return;if((o.status||'TEMP')!=='TEMP'){toast('ยกเลิกได้เฉพาะ TEMP');return}if(!confirm('ยกเลิกออเดอร์ '+o.order_no+' ?\nข้อมูลจะไม่ถูกลบ แต่จะถูกซ่อนไว้ในสถานะ CANCELLED'))return;o.status='CANCELLED';o.cancelled_at=new Date().toISOString();o.updated_at=new Date().toISOString();save('orders',orders);syncOrderToSupabase(o);renderHistory();toast('ยกเลิกออเดอร์แล้ว')}
 function renderHistory(){var q=($('historySearch').value||'').toLowerCase();var list=$('historyList');list.innerHTML='';var data=orders.filter(function(o){var st=o.status||'TEMP';if(historyFilter==='ACTIVE'&&st==='CANCELLED')return false;if(historyFilter!=='ACTIVE'&&st!==historyFilter)return false;return !q||JSON.stringify(o).toLowerCase().includes(q)});data.forEach(function(o){var d=new Date(o.created_at||Date.now());var canCancel=(o.status||'TEMP')==='TEMP';var tracking=(o.tracking_url||o.tracking_link||'');var trackingLine=tracking?'<div class="mini"><a href="'+escapeAttr(tracking)+'" target="_blank">ติดตามพัสดุ</a>'+((o.tracking_no)?' · '+escapeHtml(o.tracking_no):'')+'</div>':'';var c=document.createElement('div');c.className='histCard';var editBtn=canEditOrder(o)?' <button class="btn blue small edit">แก้ไข</button>':'';var paidInfo=(String(o.status||'')==='PAID')?'<div class="mini">ลูกค้า: '+escapeHtml(o.customer_name||o.receiver_name||'-')+' · ช่องทาง: '+escapeHtml(o.channel||'-')+'</div>':'';c.innerHTML='<div><div class="histNo">'+escapeHtml(o.order_no||'-')+'</div><div class="mini">'+escapeHtml(o.seller||'')+' · '+d.toLocaleString('th-TH',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'})+'</div><span class="status '+statusClass(o.status)+'">'+escapeHtml(statusLabel(o.status))+'</span>'+paidInfo+trackingLine+(o.last_edited_at?'<div class="editWarn">แก้ไขล่าสุด '+new Date(o.last_edited_at).toLocaleString('th-TH',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</div>':'')+'</div><div><div class="histAmt">'+money(orderTotal(o))+'</div><button class="btn soft small open">เปิด</button>'+editBtn+(canCancel?' <button class="btn danger small cancel">ยกเลิก</button>':'')+'</div>';list.appendChild(c);c.querySelector('.open').onclick=function(){openDetail(o.id)};var eb=c.querySelector('.edit');if(eb)eb.onclick=function(){openDetail(o.id);setTimeout(function(){var el=$('detailItems');if(el)el.scrollIntoView({behavior:'smooth',block:'start'})},80)};var cb=c.querySelector('.cancel');if(cb)cb.onclick=function(){cancelOrder(o.id)}});if(!list.innerHTML)list.innerHTML='<div class="mutedBox mini">ยังไม่มีประวัติในตัวกรองนี้</div>';if(!remoteReady){var w=document.createElement('div');w.className='setupBox mini';w.style.marginTop='8px';w.innerHTML='<b>Supabase ยังไม่พร้อม</b><br>'+escapeHtml(remoteError||'ยังไม่ได้ตั้งค่า key / ตาราง')+'<br><button id="goSetupFromHistory" class="btn soft small" style="margin-top:8px">ไปตั้งค่า Supabase</button>';list.prepend(w);var gs=document.getElementById('goSetupFromHistory');if(gs)gs.onclick=function(){showView('settings')}}}
 function openDetail(id){editingId=id;var o=orders.find(function(x){return x.id===id});if(!o)return;fillDetail(o);showView('detail')}
-function fillDetail(o){$('detailOrderNo').textContent=o.order_no;$('detailStatus').textContent=statusLabel(o.status);$('detailStatus').className='status '+statusClass(o.status);if($('cancelOrderBtn'))$('cancelOrderBtn').classList.toggle('hide',(o.status||'TEMP')!=='TEMP');$('payAmount').value=o.payment_amount||orderTotal(o);$('payDate').value=o.payment_date||'';$('payTime').value=o.payment_time||'';$('payerName').value=o.payer_name||'';renderPartnerSelect(o.partner_index);$('channel').value=o.channel||'Kakao';$('receiverName').value=o.receiver_name||'';$('receiverPhone').value=o.receiver_phone||'';$('zipcode').value=o.zipcode||'';$('address').value=o.address||'';$('shippingMemo').value=o.shipping_memo||'';$('shipDate').value=o.ship_date||'';var base=localStorage.getItem(LS+'tracking_base')||'';$('trackingBaseDetail').value=o.tracking_base||base;$('trackingLink').value=o.tracking_link||o.tracking_url||makeTracking(base,o.order_no);renderDetailOrderItems(o)}
-function collectDetail(){var o=orders.find(function(x){return x.id===editingId});if(!o)return null;o.payment_amount=Number($('payAmount').value)||0;o.payment_date=$('payDate').value;o.payment_time=$('payTime').value.trim();o.payer_name=$('payerName').value.trim();o.partner_index=$('partnerSelect').value;o.customer_name=(partners[Number(o.partner_index)]||{}).name||'';o.channel=$('channel').value||((partners[Number(o.partner_index)]||{}).channel)||'Kakao';o.receiver_name=$('receiverName').value.trim();o.receiver_phone=$('receiverPhone').value.trim();o.zipcode=$('zipcode').value.trim();o.address=$('address').value.trim();o.shipping_memo=$('shippingMemo').value.trim();o.ship_date=$('shipDate').value;o.tracking_base=$('trackingBaseDetail').value.trim();o.tracking_link=$('trackingLink').value.trim()||makeTracking(o.tracking_base,o.order_no);o.updated_at=new Date().toISOString();return o}
+function fillDetail(o){$('detailOrderNo').textContent=o.order_no;$('detailStatus').textContent=statusLabel(o.status);$('detailStatus').className='status '+statusClass(o.status);if($('cancelOrderBtn'))$('cancelOrderBtn').classList.toggle('hide',(o.status||'TEMP')!=='TEMP');$('payAmount').value=o.payment_amount||orderTotal(o);$('payDate').value=o.payment_date||'';$('payTime').value=o.payment_time||'';$('payerName').value=o.payer_name||'';$('customerName').value=o.customer_name||'';$('channel').value=o.channel||'Facebook';$('receiverName').value=o.receiver_name||'';$('receiverPhone').value=o.receiver_phone||'';$('zipcode').value=o.zipcode||'';$('address').value=o.address||'';$('shippingMemo').value=o.shipping_memo||'';$('shipDate').value=o.ship_date||'';var base=localStorage.getItem(LS+'tracking_base')||'';$('trackingBaseDetail').value=o.tracking_base||base;$('trackingLink').value=o.tracking_link||o.tracking_url||makeTracking(base,o.order_no);renderDetailOrderItems(o)}
+function collectDetail(){var o=orders.find(function(x){return x.id===editingId});if(!o)return null;o.payment_amount=Number($('payAmount').value)||0;o.payment_date=$('payDate').value;o.payment_time=$('payTime').value.trim();o.payer_name=$('payerName').value.trim();o.customer_name=$('customerName').value.trim();o.channel=$('channel').value;o.receiver_name=$('receiverName').value.trim();o.receiver_phone=$('receiverPhone').value.trim();o.zipcode=$('zipcode').value.trim();o.address=$('address').value.trim();o.shipping_memo=$('shippingMemo').value.trim();o.ship_date=$('shipDate').value;o.tracking_base=$('trackingBaseDetail').value.trim();o.tracking_link=$('trackingLink').value.trim()||makeTracking(o.tracking_base,o.order_no);o.updated_at=new Date().toISOString();return o}
 function makeTracking(base,orderNo){if(!base)return '';return base.replace(/\/$/,'')+'/'+encodeURIComponent(orderNo)}
 function closeMessage(o){
   var tone=(users.find(function(u){return u.username===o.seller})||currentUser||{}).tone||'';
-  var txt='สรุปออเดอร์ส่ง '+o.order_no+(tone?tone:'')+'\n\n';
-  (o.items||[]).forEach(function(it){var p=productByOpt(it.option_id);txt+='• '+(p.thai_name||it.name)+' ×'+it.qty+'\n';});
-  var shipping=Number(o.shipping)||0; var discount=Number(o.discount)||0; var total=orderTotal(o);
-  txt+='\nค่าส่ง '+money(shipping); if(discount>0)txt+='\nส่วนลด -'+money(discount); txt+='\nยอดรวม '+money(total);
+  var txt='สรุปออเดอร์ '+o.order_no+(tone?tone:'')+'\n\n';
+  var subtotal=0;
+  (o.items||[]).forEach(function(it){
+    var p=productByOpt(it.option_id);
+    var lineTotal=(Number(it.qty)||0)*(Number(it.price)||0);
+    subtotal+=lineTotal;
+    txt+='• '+(p.thai_name||it.name)+' ×'+it.qty+' = '+money(lineTotal)+'\n';
+  });
+  var shipping=Number(o.shipping)||0;
+  var discount=Number(o.discount)||0;
+  var total=orderTotal(o);
+  txt+='\nค่าสินค้า '+money(subtotal);
+  txt+='\nค่าส่ง '+money(shipping);
+  if(discount>0)txt+='\nส่วนลด -'+money(discount);
+  txt+='\nยอดรวม '+money(total);
   txt+='\n\n✅ ชำระแล้ว '+money(o.payment_amount||total);
   if(o.payer_name)txt+='\nผู้โอน: '+o.payer_name;
-  var payDateTime=[o.payment_date||'',o.payment_time||''].filter(Boolean).join(' '); if(payDateTime)txt+='\nวันที่: '+payDateTime;
-  if(o.ship_date)txt+='\n\n🚚 กำหนดจัดส่ง: '+o.ship_date;
+  var payDateTime=[o.payment_date||'',o.payment_time||''].filter(Boolean).join(' ');
+  if(payDateTime)txt+='\nวันที่: '+payDateTime;
+  txt+='\n';
+  if(o.ship_date)txt+='\n🚚 กำหนดจัดส่ง: '+o.ship_date;
   if(o.receiver_name)txt+='\nผู้รับ: '+o.receiver_name;
   if(o.receiver_phone)txt+='\nโทร: '+o.receiver_phone;
-  var fullAddress=(o.address||'').trim(); var memo=(o.shipping_memo||'').trim(); if(fullAddress||memo){txt+='\nที่อยู่: '+fullAddress+(memo?' ('+memo+')':'');}
-  if(o.tracking_link)txt+='\n\nติดตามสถานะ\n'+o.tracking_link;
-  txt+='\n\nขอบคุณที่อุดหนุน'+(tone?tone:'')+' 🙏';
+  var fullAddress=(o.address||'').trim();
+  var memo=(o.shipping_memo||'').trim();
+  if(fullAddress||memo){
+    txt+='\nที่อยู่: '+fullAddress+(memo?' ('+memo+')':'');
+  }
+  if(o.tracking_link)txt+='\n\nติดตามพัสดุ\n'+o.tracking_link;
+  txt+='\n\n📌 รบกวนตรวจสอบชื่อผู้รับ เบอร์โทรศัพท์ และที่อยู่ หากต้องการแก้ไข กรุณาแจ้งก่อนร้านจัดส่ง';
+  txt+='\nขอบคุณที่อุดหนุน'+(tone?tone:'')+' 🙏';
   return txt
 }
 function renderDashboard(){
@@ -435,14 +447,11 @@ function renderDashboard(){
   var seller=Object.keys(by).map(function(u){var x=by[u];return '<div class="histCard"><div><b>'+escapeHtml(u)+'</b><div class="mini">ทั้งหมด '+x.count+' · PAID '+x.paid+' · TEMP '+x.temp+' · ยกเลิก '+x.cancel+'</div></div><div class="histAmt">'+money(x.total)+'</div></div>'}).join('')||'<div class="mutedBox mini">ยังไม่มีข้อมูล</div>';
   $('dashboard').innerHTML='<div class="sectionTitle">ยอดขายรายวันตามวันจัดส่ง</div>'+daily+'<div class="sectionTitle" style="margin-top:14px">สรุปตามผู้ขาย</div>'+seller;
 }
-function renderPartnerSelect(selected){var sel=$('partnerSelect');if(!sel)return;sel.innerHTML='<option value="">เลือก Partner หลังโอน</option>'+partners.map(function(p,i){return '<option value="'+i+'">'+escapeHtml(p.name||p.partner_name||('Partner '+(i+1)))+'</option>'}).join('');if(selected!=null&&selected!=='')sel.value=String(selected)}
-function renderPartners(){var box=$('partnerList');if(!box)return;box.innerHTML='';partners.forEach(function(p,i){var d=document.createElement('div');d.className='prodEdit';d.innerHTML='<label class="label">ชื่อ Partner</label><input class="pn" value="'+escapeAttr(p.name||'')+'"><div class="grid2" style="margin-top:8px"><div><label class="label">ช่องทาง</label><input class="ch" value="'+escapeAttr(p.channel||'Kakao')+'"></div><div><label class="label">เบอร์/ID</label><input class="ct" value="'+escapeAttr(p.contact||'')+'"></div></div><label class="label" style="margin-top:8px">ที่อยู่/หมายเหตุ</label><input class="ad" value="'+escapeAttr(p.address||'')+'">';box.appendChild(d);});}
-async function fetchPartnersFromSupabase(){var sb=sbClient();if(!sb)return false;try{var r=await sb.from('partner_master').select('*').order('name',{ascending:true}).limit(1000);if(r.error)throw r.error;partners=(r.data||[]).map(function(x){return {id:x.id,name:x.name||x.partner_name||'',channel:x.channel||'',contact:x.contact||x.phone||x.kakao||'',address:x.address||''}});save('partners',partners);renderPartnerSelect();return true}catch(e){console.warn('partner load failed',e);return false}}
-async function savePartnersToSupabase(){var sb=sbClient();if(!sb){toast('ยังเชื่อม Supabase ไม่ได้');return false}var rows=[];document.querySelectorAll('#partnerList .prodEdit').forEach(function(d){var name=d.querySelector('.pn').value.trim();if(!name)return;rows.push({name:name,channel:d.querySelector('.ch').value.trim(),contact:d.querySelector('.ct').value.trim(),address:d.querySelector('.ad').value.trim(),active:true,updated_at:new Date().toISOString()});});try{if(rows.length){var r=await sb.from('partner_master').upsert(rows,{onConflict:'name'}).select();if(r.error)throw r.error;partners=(r.data||rows).map(function(x){return {id:x.id,name:x.name,channel:x.channel,contact:x.contact,address:x.address}});save('partners',partners);}renderPartners();renderPartnerSelect();toast('บันทึก Partner แล้ว');return true}catch(e){toast('บันทึก Partner ไม่ได้: '+(e.message||e));return false}}
-function renderSettings(){ $('supabaseUrl').value=localStorage.getItem(LS+'supabase_url')||DEFAULT_SUPABASE_URL;$('supabaseKey').value=localStorage.getItem(LS+'supabase_key')||DEFAULT_SUPABASE_ANON_KEY;$('trackingBase').value=localStorage.getItem(LS+'tracking_base')||'';$('ocrEndpoint').value=localStorage.getItem(LS+'ocr_endpoint')||'';$('ocrKey').value=localStorage.getItem(LS+'ocr_key')||'';$('extraMessages').value=extras.join('\n');$('bankAccounts').value=banks.map(function(b){return b.text}).join('\n\n');renderProductEdits();renderPartners();renderUsers();if(remoteReady){fetchUsersFromSupabase().then(function(){renderUsers()})}}
+function renderSettings(){ $('supabaseUrl').value=localStorage.getItem(LS+'supabase_url')||DEFAULT_SUPABASE_URL;$('supabaseKey').value=localStorage.getItem(LS+'supabase_key')||DEFAULT_SUPABASE_ANON_KEY;$('trackingBase').value=localStorage.getItem(LS+'tracking_base')||'';$('ocrEndpoint').value=localStorage.getItem(LS+'ocr_endpoint')||'';$('ocrKey').value=localStorage.getItem(LS+'ocr_key')||'';$('extraMessages').value=extras.join('\n');$('bankAccounts').value=banks.map(function(b){return b.text}).join('\n\n');renderProductEdits();renderUsers();if(remoteReady){fetchUsersFromSupabase().then(function(){renderUsers()})}}
 function krDisplay(p){var fields=['product_name_kr','product_name','seller_product_name','display_product_name','상품명','제품명','batch_name','name','option_name_kr','option_name','packing_name'];var vals=[];fields.forEach(function(k){if(p[k]!=null&&String(p[k]).trim()){var v=String(p[k]).trim();if(vals.indexOf(v)<0)vals.push(v)}});return vals.slice(0,3).join(' / ') || p.kr_name || ''}
-function renderProductEdits(){var box=$('productEditList');box.innerHTML='';products.forEach(function(p,i){var d=document.createElement('div');d.className='prodEdit';var kr=p.pick_name||p.kr_name||krDisplay(p);d.innerHTML='<div class="mini"><b>🇰🇷 '+escapeHtml(kr||'-')+'</b><br>Option ID: '+escapeHtml(p.option_id||'')+'<br>Display ID: '+escapeHtml(p.display_product_id||'')+'</div><label class="label">ชื่อไทยสำหรับขาย/หยิบ</label><input class="tn" value="'+escapeAttr(p.thai_name||'')+'"><div class="grid2" style="margin-top:8px"><div><label class="label">ราคาส่ง</label><input class="pp" type="number" value="'+(p.partner_price||p.page_price||p.price||0)+'"></div><div><label class="label">ถุง/ลัง</label><input class="pb" type="number" value="'+(p.pieces_per_box||p.box_qty||0)+'"></div></div><div style="margin-top:8px"><label class="label">เปิดขายใน Partner POS</label><select class="ac"><option value="yes">yes</option><option value="no">no</option></select></div>';box.appendChild(d);d.querySelector('.ac').value=p.active||'no';})}
-function renderProductSheet(){var q=($('productSearch').value||'').toLowerCase();var box=$('productButtons');box.innerHTML='';activeProducts().filter(function(p){return !q||(String(p.thai_name||'')+' '+krDisplay(p)).toLowerCase().includes(q)}).forEach(function(p){var b=document.createElement('button');b.className='prodBtn';b.innerHTML='<b>'+escapeHtml(p.thai_name||p.name||'สินค้า')+'</b><span>'+money(p.partner_price||p.page_price||p.price||0)+' · '+escapeHtml(p.pieces_per_box?('ลังละ '+p.pieces_per_box+' ถุง'):'')+'</span>';b.onclick=function(){if(productSheetTarget==='detail'){var o=detailOrder();if(!o||!canEditOrder(o)){toast('ออเดอร์นี้แก้ไขสินค้าไม่ได้');closeSheet();return}if(!Array.isArray(o.items))o.items=[];var ex=o.items.find(function(it){return String(it.option_id)===String(p.option_id)});if(ex)ex.qty++;else o.items.push({option_id:p.option_id,display_product_id:p.display_product_id,qty:1,price:Number(p.partner_price||p.page_price||p.price||0)});markOrderEdited(o,'เพิ่มสินค้า '+(p.thai_name||p.option_id));save('orders',orders);renderDetailOrderItems(o);closeSheet();return}ensureOrder();var ex=currentOrder.items.find(function(it){return String(it.option_id)===String(p.option_id)});if(ex)ex.qty++;else currentOrder.items.push({option_id:p.option_id,display_product_id:p.display_product_id,qty:1,price:Number(p.partner_price||p.page_price||p.price||0)});calcText();renderItems();closeSheet()};box.appendChild(b)});}
+function renderProductEdits(){var box=$('productEditList');box.innerHTML='';products.forEach(function(p,i){var d=document.createElement('div');d.className='prodEdit';var kr=krDisplay(p);d.innerHTML='<div class="mini"><b>🇰🇷 '+escapeHtml(kr||'-')+'</b><br>Option ID: '+escapeHtml(p.option_id||'')+'<br>Display ID: '+escapeHtml(p.display_product_id||'')+'</div><label class="label">ชื่อไทย</label><input class="tn" value="'+escapeAttr(p.thai_name||'')+'"><div class="grid2" style="margin-top:8px"><div><label class="label">ราคาส่ง</label><input class="pp" type="number" value="'+(p.page_price||p.price||0)+'"></div><div><label class="label">เปิดขาย</label><select class="ac"><option value="yes">yes</option><option value="no">no</option></select></div></div>';box.appendChild(d);d.querySelector('.ac').value=p.active||'yes';})}
+function renderUsers(){var box=$('userList');box.innerHTML='';if(!users.length){box.innerHTML='<div class="mutedBox mini">ยังไม่มี User ใน Supabase หรือยังไม่ได้โหลด</div>';return}users.forEach(function(u,i){var d=document.createElement('div');d.className='userRow';d.innerHTML='<div class="grid2"><div><label class="label">Username</label><input class="un" value="'+escapeAttr(u.username||'')+'"></div><div><label class="label">Password</label><input class="pw" value="'+escapeAttr(u.password||'')+'"></div></div><div style="margin-top:8px"><label class="label">ชื่อแสดงผล</label><input class="dn" value="'+escapeAttr(u.display_name||u.full_name||'')+'"></div><div class="grid2" style="margin-top:8px"><div><label class="label">รหัสผู้ขาย</label><input class="sc" value="'+escapeAttr(u.sellerCode||u.seller_code||'')+'"></div><div><label class="label">โทน</label><select class="to"><option>ครับ</option><option>ค่ะ</option><option value="">ไม่ใส่</option></select></div></div><div class="grid2" style="margin-top:8px"><div><label class="label">เพศ/คำลงท้าย</label><select class="ge"><option value="male">ชาย / ครับ</option><option value="female">หญิง / ค่ะ</option></select></div><div><label class="label">Role</label><select class="ro"><option value="seller">seller</option><option value="admin">admin</option></select></div></div><div style="margin-top:8px"><label class="label">สถานะ</label><select class="ac"><option value="true">เปิดใช้งาน</option><option value="false">ปิดใช้งาน</option></select></div><button class="btn danger small del" style="margin-top:8px">ปิดใช้งาน User นี้</button>';box.appendChild(d);d.querySelector('.to').value=u.tone||u.message_style||'';if(d.querySelector('.ge'))d.querySelector('.ge').value=u.gender||'male';d.querySelector('.ro').value=u.role||'seller';d.querySelector('.ac').value=String(u.active!==false);d.querySelector('.del').onclick=function(){u.active=false;renderUsers()};})}
+function renderProductSheet(){var q=($('productSearch').value||'').toLowerCase();var box=$('productButtons');box.innerHTML='';activeProducts().filter(function(p){return !q||(String(p.thai_name||'')+' '+krDisplay(p)).toLowerCase().includes(q)}).forEach(function(p){var b=document.createElement('button');b.className='prodBtn';b.innerHTML='<b>'+escapeHtml(p.thai_name||p.name||'สินค้า')+'</b><span>'+money(p.page_price||p.price||0)+' · '+escapeHtml(krDisplay(p))+'</span>';b.onclick=function(){if(productSheetTarget==='detail'){var o=detailOrder();if(!o||!canEditOrder(o)){toast('ออเดอร์นี้แก้ไขสินค้าไม่ได้');closeSheet();return}if(!Array.isArray(o.items))o.items=[];var ex=o.items.find(function(it){return String(it.option_id)===String(p.option_id)});if(ex)ex.qty++;else o.items.push({option_id:p.option_id,display_product_id:p.display_product_id,qty:1,price:Number(p.page_price||p.price||0)});markOrderEdited(o,'เพิ่มสินค้า '+(p.thai_name||p.option_id));save('orders',orders);renderDetailOrderItems(o);closeSheet();return}ensureOrder();var ex=currentOrder.items.find(function(it){return String(it.option_id)===String(p.option_id)});if(ex)ex.qty++;else currentOrder.items.push({option_id:p.option_id,display_product_id:p.display_product_id,qty:1,price:Number(p.page_price||p.price||0)});calcText();renderItems();closeSheet()};box.appendChild(b)});}
 function openSheet(target){productSheetTarget=target||'quick';renderProductSheet();$('productSheet').classList.add('show');$('sheetBackdrop').classList.add('show');setTimeout(function(){$('productSearch').focus()},50)}
 function closeSheet(){$('productSheet').classList.remove('show');$('sheetBackdrop').classList.remove('show');$('productSearch').value=''}
 function openDrawer(){$('drawer').classList.add('show')}function closeDrawer(){$('drawer').classList.remove('show')}
@@ -457,27 +466,32 @@ function pickField(x,names,matcher){
   return '';
 }
 function normalizeProductRow(x,i){
-  var oid=pickField(x,['option_id','id','optionid','optionId','optionID','옵션ID'],function(k){var ss=String(k).toLowerCase();return (ss.indexOf('option')>=0&&ss.indexOf('id')>=0)||/옵션.*id/i.test(k)});
-  var did=pickField(x,['display_product_id','displayproductid','displayProductId','노출상품ID'],function(k){var ss=String(k).toLowerCase();return (ss.indexOf('display')>=0&&ss.indexOf('product')>=0&&ss.indexOf('id')>=0)||/노출.*상품.*id/i.test(k)});
-  var pickKo=pickField(x,['pick_name','partner_pick_name','kr_name','product_name_kr','상품명','제품명','product_name','name'],function(k){var ss=String(k).toLowerCase();return ss==='pick_name'||ss.indexOf('product_name')>=0||ss.indexOf('상품명')>=0||ss.indexOf('제품명')>=0});
-  var pickTh=pickField(x,['pick_name_th','partner_pick_name_th','thai_name','product_name_th','pos_name_th','name_th'],function(k){var ss=String(k).toLowerCase();return ss.indexOf('pick_name_th')>=0||ss.indexOf('thai')>=0||ss.indexOf('_th')>=0});
-  var price=pickField(x,['partner_price','wholesale_price','page_price','pos_price','price','sale_price'],function(k){var ss=String(k).toLowerCase();return ss.indexOf('price')>=0||ss.indexOf('가격')>=0});
-  return Object.assign({},x,{option_id:String(oid||'').trim(),display_product_id:String(did||'').trim(),pick_name:String(pickKo||'').trim(),kr_name:String(pickKo||'').trim(),thai_name:String(pickTh||pickKo||('สินค้า '+(i+1))).trim(),partner_price:Number(String(price||'0').replace(/[^0-9.]/g,''))||0,page_price:Number(String(price||'0').replace(/[^0-9.]/g,''))||0,pieces_per_box:Number(x.pieces_per_box||x.box_qty||0)||0,active:'no'});
+  var oid=pickField(x,['option_id','optionid','optionId','optionID','option_id_value','옵션ID','옵션id','옵션 ID','옵션아이디'],function(k){var s=String(k).toLowerCase();return (s.indexOf('option')>=0&&s.indexOf('id')>=0&&s.indexOf('display')<0&&s.indexOf('product')<0)||/옵션.*id/i.test(k)||/옵션.*아이디/.test(k)});
+  var did=pickField(x,['display_product_id','displayproductid','displayProductId','displayProductID','product_display_id','노출상품ID','노출상품id','노출상품 ID','노출상품아이디'],function(k){var s=String(k).toLowerCase();return (s.indexOf('display')>=0&&s.indexOf('product')>=0&&s.indexOf('id')>=0)||/노출.*상품.*id/i.test(k)||/노출.*상품.*아이디/.test(k)});
+  var mainName=pickField(x,['kr_name','product_name_kr','korean_name','상품명','제품명','seller_product_name','display_product_name','product_name','batch_name','name'],function(k){var s=String(k).toLowerCase();return (s.indexOf('product')>=0&&s.indexOf('name')>=0)||s.indexOf('상품명')>=0||s.indexOf('제품명')>=0||s.indexOf('batch_name')>=0});
+  var optionName=pickField(x,['option_name_kr','option_name','옵션명','옵션명값','packing_name'],function(k){var s=String(k).toLowerCase();return s.indexOf('option')>=0&&s.indexOf('name')>=0||s.indexOf('packing_name')>=0||s.indexOf('옵션')>=0});
+  var kr=String(mainName||'').trim(); if(optionName&&kr&&kr.indexOf(String(optionName).trim())<0)kr=kr+' / '+String(optionName).trim(); if(!kr)kr=String(optionName||'').trim();
+  var name=pickField(x,['thai_name','pos_name_th','product_name_th','name_th','thaiName','product_th','display_name_th'],function(k){var s=String(k).toLowerCase();return (s.indexOf('thai')>=0||s.indexOf('_th')>=0||s.indexOf('th_')>=0)});
+  var price=pickField(x,['page_price','pos_price','price_page','sale_price','selling_price','price','retail_price'],function(k){var s=String(k).toLowerCase();return s.indexOf('price')>=0||s.indexOf('가격')>=0||s.indexOf('판매가')>=0});
+  var active=pickField(x,['active','is_active','use','enabled','status'],function(k){var s=String(k).toLowerCase();return s==='active'||s==='enabled'||s==='status'});
+  return Object.assign({},x,{option_id:String(oid||'').trim(),display_product_id:String(did||'').trim(),kr_name:String(kr||'').trim(),thai_name:String(name||kr||('สินค้า '+(i+1))).trim(),page_price:Number(String(price||'0').replace(/[^0-9.]/g,''))||0,active:active===''?'yes':active});
 }
 
-function mergeProductAliases(base, settings){
-  var map={};(settings||[]).forEach(function(a){if(a&&a.option_id!=null)map[String(a.option_id)]=a});
-  return (base||[]).map(function(p){var a=map[String(p.option_id)]||{};return Object.assign({},p,{thai_name:a.pick_name_th||a.partner_pick_name_th||a.thai_name||p.thai_name,partner_price:(a.partner_price!=null&&a.partner_price!==''?Number(a.partner_price):p.partner_price),page_price:(a.partner_price!=null&&a.partner_price!==''?Number(a.partner_price):p.page_price),pieces_per_box:Number(a.pieces_per_box||p.pieces_per_box||0)||0,active:(a.enabled===false||a.active==='no'||a.partner_enabled===false)?'no':(a.enabled===true||a.active==='yes'||a.partner_enabled===true?'yes':(a.active||p.active||'no')),setting_id:a.id||p.setting_id})});
+function mergeProductAliases(base, aliases){
+  var map={};(aliases||[]).forEach(function(a){if(a&&a.option_id!=null)map[String(a.option_id)]=a});
+  return (base||[]).map(function(p){var a=map[String(p.option_id)]||{};return Object.assign({},p,{thai_name:a.thai_name||p.thai_name,page_price:(a.page_price!=null&&a.page_price!==''?Number(a.page_price):p.page_price),active:a.active||p.active||'yes',alias_id:a.id||p.alias_id})});
 }
 async function fetchProductAliases(sb){
-  try{var a=await sb.from('partner_product_settings').select('*').limit(5000);if(a.error)throw a.error;return a.data||[]}catch(e){console.warn('partner_product_settings load failed',e);return []}
+  try{var a=await sb.from('khokai_pos_product_aliases').select('*').limit(2000);if(a.error)throw a.error;return a.data||[]}catch(e){console.warn('product aliases load failed',e);return []}
 }
 async function saveProductAliasesToSupabase(){
   var sb=sbClient();if(!sb){toast('ยังไม่ได้เชื่อม Supabase');return false}
   try{
-    var rows=products.map(function(p){return {option_id:String(p.option_id||''),display_product_id:String(p.display_product_id||''),pick_name:p.pick_name||p.kr_name||krDisplay(p),pick_name_th:p.thai_name||'',partner_price:Number(p.partner_price||p.page_price||0),pieces_per_box:Number(p.pieces_per_box||0),enabled:(p.active||'no')==='yes',updated_at:new Date().toISOString()}}).filter(function(r){return r.option_id});
-    if(rows.length){var ins=await sb.from('partner_product_settings').upsert(rows,{onConflict:'option_id'});if(ins.error)throw ins.error;}
-    toast('บันทึกสินค้า Partner ลง Supabase แล้ว');
+    var rows=products.map(function(p){return {option_id:String(p.option_id||''),display_product_id:String(p.display_product_id||''),option_name_kr:krDisplay(p),thai_name:p.thai_name||'',page_price:Number(p.page_price||0),active:p.active||'yes',payload:{source:'mini-pos-settings'},updated_at:new Date().toISOString()}}).filter(function(r){return r.option_id});
+    var ids=rows.map(function(r){return r.option_id});
+    if(ids.length){var del=await sb.from('khokai_pos_product_aliases').delete().in('option_id',ids);if(del.error)throw del.error;}
+    if(rows.length){var ins=await sb.from('khokai_pos_product_aliases').insert(rows);if(ins.error)throw ins.error;}
+    toast('บันทึกชื่อไทย/ราคาส่งลง Supabase แล้ว ทุกเครื่องโหลดได้');
     return true;
   }catch(e){toast('บันทึกสินค้าเข้า Supabase ไม่ได้: '+(e.message||e));return false}
 }
@@ -506,7 +520,7 @@ async function loadFromSupabase(){
   }catch(e){$('loadStatus').textContent='โหลดไม่ได้: '+e.message;toast('โหลดไม่ได้')}
 }
 
-var SETUP_SQL = `-- KHOKAI Partner POS V15.5 Database Migration
+var SETUP_SQL = `-- KHOKAI Partner POS V17 shared-table migration
 -- Run this once in Supabase SQL Editor. Safe to run repeatedly.
 -- Goal: fix old table versions without deleting data.
 
@@ -528,7 +542,7 @@ end;
 $$;
 
 -- 2) Main orders table
-create table if not exists public.khokai_partner_orders (
+create table if not exists public.khokai_pos_orders (
   id text primary key,
   order_no text,
   seller text,
@@ -540,35 +554,38 @@ create table if not exists public.khokai_partner_orders (
 );
 
 -- Old versions may have id as uuid. Convert to text so the app can save id like o_172...
-alter table public.khokai_partner_orders alter column id drop default;
-alter table public.khokai_partner_orders alter column id type text using id::text;
+alter table public.khokai_pos_orders alter column id drop default;
+alter table public.khokai_pos_orders alter column id type text using id::text;
 
 -- Add all columns used now or likely next. Existing data is preserved.
-alter table public.khokai_partner_orders add column if not exists order_no text;
-alter table public.khokai_partner_orders add column if not exists seller text;
-alter table public.khokai_partner_orders add column if not exists status text default 'TEMP';
-alter table public.khokai_partner_orders add column if not exists total numeric default 0;
-alter table public.khokai_partner_orders add column if not exists payload jsonb default '{}'::jsonb;
-alter table public.khokai_partner_orders add column if not exists created_at timestamptz default now();
-alter table public.khokai_partner_orders add column if not exists updated_at timestamptz default now();
+alter table public.khokai_pos_orders add column if not exists order_no text;
+alter table public.khokai_pos_orders add column if not exists seller text;
+alter table public.khokai_pos_orders add column if not exists status text default 'TEMP';
+alter table public.khokai_pos_orders add column if not exists total numeric default 0;
+alter table public.khokai_pos_orders add column if not exists payload jsonb default '{}'::jsonb;
+alter table public.khokai_pos_orders add column if not exists created_at timestamptz default now();
+alter table public.khokai_pos_orders add column if not exists updated_at timestamptz default now();
 
 -- Optional flat columns for searching/reporting later. App still keeps full object in payload.
-alter table public.khokai_partner_orders add column if not exists channel text;
-alter table public.khokai_partner_orders add column if not exists receiver_name text;
-alter table public.khokai_partner_orders add column if not exists receiver_phone text;
-alter table public.khokai_partner_orders add column if not exists address text;
-alter table public.khokai_partner_orders add column if not exists shipping_memo text;
-alter table public.khokai_partner_orders add column if not exists payment_amount numeric;
-alter table public.khokai_partner_orders add column if not exists payment_date date;
-alter table public.khokai_partner_orders add column if not exists payment_time text;
-alter table public.khokai_partner_orders add column if not exists payer_name text;
-alter table public.khokai_partner_orders add column if not exists bank_label text;
-alter table public.khokai_partner_orders add column if not exists tracking_url text;
-alter table public.khokai_partner_orders add column if not exists tracking_no text;
-alter table public.khokai_partner_orders add column if not exists exported_at timestamptz;
-alter table public.khokai_partner_orders add column if not exists paid_at timestamptz;
-alter table public.khokai_partner_orders add column if not exists cancelled_at timestamptz;
-alter table public.khokai_partner_orders add column if not exists cancel_reason text;
+alter table public.khokai_pos_orders add column if not exists channel text;
+alter table public.khokai_pos_orders add column if not exists receiver_name text;
+alter table public.khokai_pos_orders add column if not exists receiver_phone text;
+alter table public.khokai_pos_orders add column if not exists address text;
+alter table public.khokai_pos_orders add column if not exists shipping_memo text;
+alter table public.khokai_pos_orders add column if not exists payment_amount numeric;
+alter table public.khokai_pos_orders add column if not exists payment_date date;
+alter table public.khokai_pos_orders add column if not exists payment_time text;
+alter table public.khokai_pos_orders add column if not exists payer_name text;
+alter table public.khokai_pos_orders add column if not exists bank_label text;
+alter table public.khokai_pos_orders add column if not exists tracking_url text;
+alter table public.khokai_pos_orders add column if not exists tracking_no text;
+alter table public.khokai_pos_orders add column if not exists exported_at timestamptz;
+alter table public.khokai_pos_orders add column if not exists paid_at timestamptz;
+alter table public.khokai_pos_orders add column if not exists cancelled_at timestamptz;
+alter table public.khokai_pos_orders add column if not exists cancel_reason text;
+alter table public.khokai_pos_orders add column if not exists sales_channel text;
+alter table public.khokai_pos_orders add column if not exists order_type text;
+
 
 -- If payload existed as text/json/etc in old schema, normalize it to jsonb.
 do $$
@@ -577,21 +594,21 @@ declare
 begin
   select data_type into payload_type
   from information_schema.columns
-  where table_schema='public' and table_name='khokai_partner_orders' and column_name='payload';
+  where table_schema='public' and table_name='khokai_pos_orders' and column_name='payload';
 
   if payload_type is not null and payload_type <> 'jsonb' then
-    execute 'alter table public.khokai_partner_orders alter column payload type jsonb using public.khokai_safe_jsonb(payload::text)';
+    execute 'alter table public.khokai_pos_orders alter column payload type jsonb using public.khokai_safe_jsonb(payload::text)';
   end if;
 end $$;
 
-alter table public.khokai_partner_orders alter column payload set default '{}'::jsonb;
-alter table public.khokai_partner_orders alter column payload set not null;
-alter table public.khokai_partner_orders alter column status set default 'TEMP';
-alter table public.khokai_partner_orders alter column total set default 0;
-alter table public.khokai_partner_orders alter column created_at set default now();
-alter table public.khokai_partner_orders alter column updated_at set default now();
+alter table public.khokai_pos_orders alter column payload set default '{}'::jsonb;
+alter table public.khokai_pos_orders alter column payload set not null;
+alter table public.khokai_pos_orders alter column status set default 'TEMP';
+alter table public.khokai_pos_orders alter column total set default 0;
+alter table public.khokai_pos_orders alter column created_at set default now();
+alter table public.khokai_pos_orders alter column updated_at set default now();
 
-update public.khokai_partner_orders
+update public.khokai_pos_orders
 set order_no = coalesce(order_no, id::text),
     status = coalesce(status, 'TEMP'),
     total = coalesce(total, 0),
@@ -605,11 +622,11 @@ where order_no is null
    or created_at is null
    or updated_at is null;
 
-create index if not exists khokai_partner_orders_order_no_idx on public.khokai_partner_orders(order_no);
-create index if not exists khokai_partner_orders_status_idx on public.khokai_partner_orders(status);
-create index if not exists khokai_partner_orders_seller_idx on public.khokai_partner_orders(seller);
-create index if not exists khokai_partner_orders_created_at_idx on public.khokai_partner_orders(created_at desc);
-create index if not exists khokai_partner_orders_payload_idx on public.khokai_partner_orders using gin(payload);
+create index if not exists khokai_pos_orders_order_no_idx on public.khokai_pos_orders(order_no);
+create index if not exists khokai_pos_orders_status_idx on public.khokai_pos_orders(status);
+create index if not exists khokai_pos_orders_seller_idx on public.khokai_pos_orders(seller);
+create index if not exists khokai_pos_orders_created_at_idx on public.khokai_pos_orders(created_at desc);
+create index if not exists khokai_pos_orders_payload_idx on public.khokai_pos_orders using gin(payload);
 
 -- 3) Product alias table: Thai name / page price / Korean name reference per option_id
 create table if not exists public.khokai_pos_product_aliases (
@@ -689,7 +706,7 @@ insert into public.khokai_pos_message_templates (label, message_text, active, so
 select 'default slip', 'โอนแล้ว รบกวนแจ้งสลิป เพื่อทำการจัดส่งสินค้า', true, 10
 where not exists (select 1 from public.khokai_pos_message_templates);
 
--- 6) POS users/settings lightweight tables for future admin control
+-- 6) POS users/settings lightweight tables for login
 create table if not exists public.khokai_tracking (
   id uuid primary key default gen_random_uuid(),
   order_no text unique not null,
@@ -752,8 +769,8 @@ create table if not exists public.khokai_pos_settings (
   updated_at timestamptz default now()
 );
 
--- 7) Permission for simple Mini App with anon key. Keep simple for now.
-alter table public.khokai_partner_orders disable row level security;
+-- 7) Permission for simple app with anon key. Keep simple for now.
+alter table public.khokai_pos_orders disable row level security;
 alter table public.khokai_pos_product_aliases disable row level security;
 alter table public.khokai_pos_bank_accounts disable row level security;
 alter table public.khokai_pos_message_templates disable row level security;
@@ -761,7 +778,7 @@ alter table public.khokai_pos_users disable row level security;
 alter table public.khokai_pos_settings disable row level security;
 
 grant usage on schema public to anon, authenticated;
-grant select, insert, update, delete on public.khokai_partner_orders to anon, authenticated;
+grant select, insert, update, delete on public.khokai_pos_orders to anon, authenticated;
 grant select, insert, update, delete on public.khokai_pos_product_aliases to anon, authenticated;
 grant select, insert, update, delete on public.khokai_pos_bank_accounts to anon, authenticated;
 grant select, insert, update, delete on public.khokai_pos_message_templates to anon, authenticated;
@@ -776,39 +793,6 @@ values ('seller1', '1234', 'Seller 1', 'seller', '11', 'female', 'ค่ะ', '�
 on conflict (username) do nothing;
 
 -- 8) Tell PostgREST/Supabase API to reload schema cache
-
--- Partner POS product setting table
-create table if not exists public.partner_product_settings (
-  option_id text primary key,
-  display_product_id text,
-  pick_name text,
-  pick_name_th text,
-  partner_price numeric default 0,
-  pieces_per_box numeric default 0,
-  enabled boolean default false,
-  active text generated always as (case when enabled then 'yes' else 'no' end) stored,
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
-);
-alter table public.partner_product_settings disable row level security;
-grant select, insert, update, delete on public.partner_product_settings to anon, authenticated;
-
--- Partner master table
-create table if not exists public.partner_master (
-  id bigserial primary key,
-  name text unique not null,
-  channel text,
-  contact text,
-  phone text,
-  kakao text,
-  address text,
-  active boolean default true,
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
-);
-alter table public.partner_master disable row level security;
-grant select, insert, update, delete on public.partner_master to anon, authenticated;
-
 notify pgrst, 'reload schema';
 
 commit;
@@ -853,7 +837,10 @@ function sbClient(){
   if(!url||!key||!window.supabase)return null;
   return window.supabase.createClient(url,key);
 }
+function markPartnerOrder(o){o.app_mode=APP_MODE;o.order_type='PARTNER';o.sales_channel='PARTNER';return o}
+function isPartnerOrder(o){return o&&(o.app_mode===APP_MODE||o.order_type==='PARTNER'||o.sales_channel==='PARTNER'||String(o.id||'').startsWith('p_'))}
 function orderRow(o){
+  markPartnerOrder(o);
   return {id:o.id,order_no:o.order_no,seller:o.seller||'',status:o.status||'TEMP',total:orderTotal(o),payload:o,channel:o.channel||'',receiver_name:o.receiver_name||'',receiver_phone:o.receiver_phone||'',address:o.address||'',shipping_memo:o.shipping_memo||'',payment_amount:o.payment_amount||null,payment_date:o.payment_date||null,payment_time:o.payment_time||'',payer_name:o.payer_name||'',tracking_url:o.tracking_link||'',created_at:o.created_at||new Date().toISOString(),updated_at:new Date().toISOString()};
 }
 async function syncOrderToSupabase(o){
@@ -869,8 +856,8 @@ async function fetchOrdersFromSupabase(){
   try{
     var r=await sb.from(ORDER_TABLE).select('*').order('created_at',{ascending:false}).limit(500);
     if(r.error)throw r.error;
-    var remote=(r.data||[]).map(function(x){var o=x.payload||x;if(!o.payment_date&&x.payment_date)o.payment_date=x.payment_date;if(!o.payment_time&&x.payment_time)o.payment_time=x.payment_time;if(!o.payer_name&&x.payer_name)o.payer_name=x.payer_name;return o});
-    if(remote.length){orders=remote;save('orders',orders)}
+    var remote=(r.data||[]).map(function(x){var o=x.payload||x;if(!o.payment_date&&x.payment_date)o.payment_date=x.payment_date;if(!o.payment_time&&x.payment_time)o.payment_time=x.payment_time;if(!o.payer_name&&x.payer_name)o.payer_name=x.payer_name;return o}).filter(isPartnerOrder);
+    orders=remote;save('orders',orders)
     await syncTrackingFromSupabase();
     remoteReady=true;remoteError='';return orders;
   }catch(e){remoteReady=false;remoteError=e.message||String(e);console.warn('Supabase order fetch failed',e);return orders}
@@ -982,10 +969,10 @@ $('loginBtn').onclick=async function(){
   currentUser=u;$('loginScreen').classList.add('hide');$('app').classList.remove('hide');$('bottomnav').classList.remove('hide');$('fab').classList.remove('hide');$('who').textContent=u.username;$('sellerCodeShow').textContent=u.sellerCode||'';applyRoleUi();await fetchOrdersFromSupabase();ensureOrder();showView('quick')
 };
 $('menuBtn').onclick=openDrawer;$('closeMenu').onclick=closeDrawer;$('drawer').addEventListener('click',function(e){if(e.target.id==='drawer')closeDrawer()});document.querySelectorAll('[data-view]').forEach(function(b){b.onclick=function(){showView(b.dataset.view)}});document.querySelectorAll('[data-filter]').forEach(function(b){b.onclick=function(){historyFilter=b.dataset.filter;document.querySelectorAll('[data-filter]').forEach(function(x){x.classList.toggle('active',x===b)});renderHistory()}});$('searchBtn').onclick=function(){showView('history');$('searchBox').classList.toggle('hide');$('historySearch').focus()};$('fab').onclick=openSheet;$('addProductBtn').onclick=openSheet;$('closeSheet').onclick=closeSheet;$('sheetBackdrop').onclick=closeSheet;$('productSearch').oninput=renderProductSheet;
-$('newTempBtn').onclick=async function(){await fetchOrdersFromSupabase();currentOrder={id:'o_'+Date.now(),order_no:newOrderNo(),status:'TEMP',seller:currentUser.username,sellerCode:currentUser.sellerCode,items:[],shipping:5000,discount:0,extraIndex:0,bankIndex:0,created_at:new Date().toISOString()};renderQuick();await saveCurrentTemp()};$('saveTempBtn').onclick=saveCurrentTemp;$('copyBtn').onclick=async function(){await saveCurrentTemp();navigator.clipboard&&navigator.clipboard.writeText(calcText()).then(function(){toast('คัดลอกแล้ว')})};['shipping','discount','extraSelect','bankSelect'].forEach(function(id){$(id).addEventListener('input',function(){calcText();autosaveDraft()});$(id).addEventListener('change',function(){calcText();autosaveDraft()})});$('refreshHistory').onclick=renderHistory;$('exportOmsBtn').onclick=exportPaidOrdersOMS;$('historySearch').oninput=renderHistory;$('backHistory').onclick=function(){showView('history')};$('detailAddProduct').onclick=function(){openSheet('detail')};$('saveDetailItems').onclick=async function(){var o=detailOrder();if(!o)return;if(!canEditOrder(o)){toast('ออเดอร์นี้แก้ไขไม่ได้');return}saveDetailAmounts();o=detailOrder();await syncOrderToSupabase(o);fillDetail(o);toast(remoteReady?'บันทึกการแก้ไขลง Supabase แล้ว':'บันทึกในเครื่องแล้ว / Supabase: '+(remoteError||'ยังไม่พร้อม'))};['detailShipping','detailDiscount'].forEach(function(id){$(id).addEventListener('input',saveDetailAmounts);$(id).addEventListener('change',saveDetailAmounts)});
-$('completeOrder').onclick=async function(){var o=collectDetail();if(!o)return;if((o.items||[]).length===0){toast('ยังไม่มีสินค้าในออเดอร์');return}if(!o.payment_amount){if(!confirm('ยังไม่ได้กรอกยอดโอน ต้องการบันทึกเป็น PAID ไหม?'))return}o.status='PAID';o.paid_at=new Date().toISOString();save('orders',orders);await syncOrderToSupabase(o);fillDetail(o);toast(remoteReady?'บันทึกเป็น PAID ลง Supabase แล้ว':'บันทึกในเครื่องแล้ว / Supabase: '+(remoteError||'ยังไม่พร้อม'))};$('copyClose').onclick=async function(){var o=collectDetail();if(!o)return;save('orders',orders);await syncOrderToSupabase(o);navigator.clipboard&&navigator.clipboard.writeText(closeMessage(o)).then(function(){toast('คัดลอกสรุปปิดแล้ว')})};$('cancelOrderBtn').onclick=function(){cancelOrder(editingId);showView('history')};$('trackingBaseDetail').oninput=function(){var o=orders.find(function(x){return x.id===editingId});$('trackingLink').value=makeTracking(this.value,o?o.order_no:'')};$('addrApi').onclick=function(){if(window.daum&&daum.Postcode){new daum.Postcode({oncomplete:function(data){$('zipcode').value=data.zonecode;$('address').value=data.roadAddress||data.jibunAddress}}).open()}else toast('Daum Postcode ยังโหลดไม่สำเร็จ')};
+$('newTempBtn').onclick=async function(){await fetchOrdersFromSupabase();currentOrder=markPartnerOrder({id:'p_'+Date.now(),order_no:newOrderNo(),status:'TEMP',seller:currentUser.username,sellerCode:currentUser.sellerCode,items:[],shipping:5000,discount:0,extraIndex:0,bankIndex:0,created_at:new Date().toISOString()});renderQuick();await saveCurrentTemp()};$('saveTempBtn').onclick=saveCurrentTemp;$('copyBtn').onclick=async function(){await saveCurrentTemp();navigator.clipboard&&navigator.clipboard.writeText(calcText()).then(function(){toast('คัดลอกแล้ว')})};['shipping','discount','extraSelect','bankSelect'].forEach(function(id){$(id).addEventListener('input',function(){calcText();autosaveDraft()});$(id).addEventListener('change',function(){calcText();autosaveDraft()})});$('refreshHistory').onclick=renderHistory;$('exportOmsBtn').onclick=exportPaidOrdersOMS;$('historySearch').oninput=renderHistory;$('backHistory').onclick=function(){showView('history')};$('detailAddProduct').onclick=function(){openSheet('detail')};$('saveDetailItems').onclick=async function(){var o=detailOrder();if(!o)return;if(!canEditOrder(o)){toast('ออเดอร์นี้แก้ไขไม่ได้');return}saveDetailAmounts();o=detailOrder();await syncOrderToSupabase(o);fillDetail(o);toast(remoteReady?'บันทึกการแก้ไขลง Supabase แล้ว':'บันทึกในเครื่องแล้ว / Supabase: '+(remoteError||'ยังไม่พร้อม'))};['detailShipping','detailDiscount'].forEach(function(id){$(id).addEventListener('input',saveDetailAmounts);$(id).addEventListener('change',saveDetailAmounts)});
+$('completeOrder').onclick=async function(){var o=collectDetail();if(!o)return;if((o.items||[]).length===0){toast('ยังไม่มีสินค้าในออเดอร์');return}if(!o.payment_amount){if(!confirm('ยังไม่ได้กรอกยอดโอน ต้องการบันทึกเป็น PAID ไหม?'))return}markPartnerOrder(o);o.status='PAID';o.paid_at=new Date().toISOString();save('orders',orders);await syncOrderToSupabase(o);fillDetail(o);toast(remoteReady?'บันทึกเป็น PAID ลง Supabase แล้ว':'บันทึกในเครื่องแล้ว / Supabase: '+(remoteError||'ยังไม่พร้อม'))};$('copyClose').onclick=async function(){var o=collectDetail();if(!o)return;markPartnerOrder(o);save('orders',orders);await syncOrderToSupabase(o);navigator.clipboard&&navigator.clipboard.writeText(closeMessage(o)).then(function(){toast('คัดลอกสรุปปิดแล้ว')})};$('cancelOrderBtn').onclick=function(){cancelOrder(editingId);showView('history')};$('trackingBaseDetail').oninput=function(){var o=orders.find(function(x){return x.id===editingId});$('trackingLink').value=makeTracking(this.value,o?o.order_no:'')};$('addrApi').onclick=function(){if(window.daum&&daum.Postcode){new daum.Postcode({oncomplete:function(data){$('zipcode').value=data.zonecode;$('address').value=data.roadAddress||data.jibunAddress}}).open()}else toast('Daum Postcode ยังโหลดไม่สำเร็จ')};
 $('ocrImage').onchange=function(){var f=this.files&&this.files[0];if(!f)return;var r=new FileReader();r.onload=function(){ocrImageData=r.result;$('ocrPreview').src=r.result;$('ocrPreview').classList.remove('hide')};r.readAsDataURL(f)};$('parseOcr').onclick=function(){parseTextToFields($('ocrText').value)};$('ocrAuto').onclick=function(){runAiOcr('auto')};$('ocrSlip').onclick=function(){runAiOcr('slip')};$('ocrAddress').onclick=function(){runAiOcr('address')};
-$('saveSupabase').onclick=async function(){localStorage.setItem(LS+'supabase_url',$('supabaseUrl').value.trim());localStorage.setItem(LS+'supabase_key',$('supabaseKey').value.trim());await testSupabaseConnection();await fetchOrdersFromSupabase();toast('บันทึก Supabase แล้ว')};$('testSupabase').onclick=testSupabaseConnection;$('copySql').onclick=function(){if($('sqlBox'))$('sqlBox').classList.toggle('hide');navigator.clipboard&&navigator.clipboard.writeText(SETUP_SQL).then(function(){toast('คัดลอก SQL แล้ว')})};$('loadProducts').onclick=loadFromSupabase;$('saveProducts').onclick=async function(){document.querySelectorAll('#productEditList .prodEdit').forEach(function(d,i){products[i].thai_name=d.querySelector('.tn').value.trim();products[i].partner_price=Number(d.querySelector('.pp').value)||0;products[i].page_price=products[i].partner_price;products[i].pieces_per_box=Number(d.querySelector('.pb').value)||0;products[i].active=d.querySelector('.ac').value});save('products',products);await saveProductAliasesToSupabase();renderProductSheet();toast('บันทึกสินค้าแล้ว')};$('saveExtras').onclick=function(){extras=$('extraMessages').value.split(/\n/).map(function(x){return x.trim()}).filter(Boolean);save('extras',extras);renderExtras();calcText();toast('บันทึกข้อความเสริมแล้ว')};$('saveBanks').onclick=function(){banks=parseBanks($('bankAccounts').value);if(!banks.length)banks=defaultBanks;save('banks',banks);renderBankSelect();calcText();toast('บันทึกบัญชีธนาคารแล้ว')};$('addPartner').onclick=function(){partners.push({name:'',channel:'Kakao',contact:'',address:''});renderPartners()};$('savePartners').onclick=savePartnersToSupabase;$('addUser').onclick=function(){users.push({username:'new_user',password:'1234',display_name:'',sellerCode:'99',gender:'female',tone:'ค่ะ',message_style:'ค่ะ',role:'seller',active:true});renderUsers()};$('saveUsers').onclick=saveUsersToSupabase;$('saveOcr').onclick=function(){localStorage.setItem(LS+'ocr_endpoint',$('ocrEndpoint').value.trim());localStorage.setItem(LS+'ocr_key',$('ocrKey').value.trim());toast('บันทึก AI OCR แล้ว')};$('saveTracking').onclick=function(){localStorage.setItem(LS+'tracking_base',$('trackingBase').value.trim());toast('บันทึก Tracking แล้ว')};document.querySelectorAll('#logout,[id=logout]').forEach(function(b){b.onclick=function(){location.reload()}});
+$('saveSupabase').onclick=async function(){localStorage.setItem(LS+'supabase_url',$('supabaseUrl').value.trim());localStorage.setItem(LS+'supabase_key',$('supabaseKey').value.trim());await testSupabaseConnection();await fetchOrdersFromSupabase();toast('บันทึก Supabase แล้ว')};$('testSupabase').onclick=testSupabaseConnection;$('copySql').onclick=function(){if($('sqlBox'))$('sqlBox').classList.toggle('hide');navigator.clipboard&&navigator.clipboard.writeText(SETUP_SQL).then(function(){toast('คัดลอก SQL แล้ว')})};$('loadProducts').onclick=loadFromSupabase;$('saveProducts').onclick=async function(){document.querySelectorAll('#productEditList .prodEdit').forEach(function(d,i){products[i].thai_name=d.querySelector('.tn').value.trim();products[i].page_price=Number(d.querySelector('.pp').value)||0;products[i].active=d.querySelector('.ac').value});save('products',products);await saveProductAliasesToSupabase();renderProductSheet();toast('บันทึกสินค้าแล้ว')};$('saveExtras').onclick=function(){extras=$('extraMessages').value.split(/\n/).map(function(x){return x.trim()}).filter(Boolean);save('extras',extras);renderExtras();calcText();toast('บันทึกข้อความเสริมแล้ว')};$('saveBanks').onclick=function(){banks=parseBanks($('bankAccounts').value);if(!banks.length)banks=defaultBanks;save('banks',banks);renderBankSelect();calcText();toast('บันทึกบัญชีธนาคารแล้ว')};$('addUser').onclick=function(){users.push({username:'new_user',password:'1234',display_name:'',sellerCode:'99',gender:'female',tone:'ค่ะ',message_style:'ค่ะ',role:'seller',active:true});renderUsers()};$('saveUsers').onclick=saveUsersToSupabase;$('saveOcr').onclick=function(){localStorage.setItem(LS+'ocr_endpoint',$('ocrEndpoint').value.trim());localStorage.setItem(LS+'ocr_key',$('ocrKey').value.trim());toast('บันทึก AI OCR แล้ว')};$('saveTracking').onclick=function(){localStorage.setItem(LS+'tracking_base',$('trackingBase').value.trim());toast('บันทึก Tracking แล้ว')};document.querySelectorAll('#logout,[id=logout]').forEach(function(b){b.onclick=function(){location.reload()}});
 async function bootstrap(){
   renderSettings();
   await autoConnectSupabase();
@@ -993,7 +980,6 @@ async function bootstrap(){
     await fetchOrdersFromSupabase();
     try{await loadFromSupabase()}catch(e){}
     try{await fetchUsersFromSupabase()}catch(e){}
-    try{await fetchPartnersFromSupabase()}catch(e){}
   }
 }
 bootstrap();
