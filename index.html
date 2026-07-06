@@ -1,19 +1,1003 @@
 <!doctype html>
 <html lang="th">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>KHOKAI ERP Lite V2.2.0</title>
-  <link rel="stylesheet" href="css/style.css" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>KHOKAI Partner POS V17</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--ink:#101827;--muted:#6b7280;--line:#e5e7eb;--soft:#f3f4f6;--blue:#2454d8;--ok:#0f766e;--danger:#b91c1c;--warn:#92400e;--shadow:0 1px 6px rgba(0,0,0,.06)}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Tahoma,sans-serif;font-size:15px}button,input,select,textarea{font:inherit}button{cursor:pointer}input,select,textarea{width:100%;border:1px solid var(--line);border-radius:14px;padding:11px 12px;background:#fff;outline:none;color:var(--ink)}textarea{min-height:92px;white-space:pre-wrap}.hide{display:none!important}.app{max-width:520px;margin:0 auto;padding:10px 10px 96px}.top{position:sticky;top:0;background:rgba(246,247,251,.96);backdrop-filter:blur(10px);z-index:20;padding:9px 0 8px}.bar{display:flex;align-items:center;gap:8px}.brand{font-weight:950;font-size:19px;line-height:1}.sub{font-size:11px;color:var(--muted);margin-top:2px}.grow{flex:1}.iconbtn{border:1px solid var(--line);background:#fff;border-radius:14px;width:42px;height:42px;font-weight:900;color:var(--ink)}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:12px;margin:10px 0;box-shadow:var(--shadow)}.mini{font-size:11px;color:var(--muted);line-height:1.45}.label{display:block;font-size:12px;color:var(--muted);margin:0 0 5px}.btn{border:0;border-radius:15px;padding:12px 13px;background:#111827;color:#fff;font-weight:900}.btn.full{width:100%}.btn.blue{background:var(--blue)}.btn.ok{background:var(--ok)}.btn.danger{background:var(--danger)}.btn.warn{background:var(--warn)}.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}.btn.soft{background:var(--soft);color:var(--ink);border:1px solid var(--line)}.btn.small{padding:8px 10px;border-radius:12px;font-size:13px}.quick-head{display:flex;align-items:flex-start;gap:8px}.orderNo{font-size:22px;font-weight:950;letter-spacing:.2px}.pill{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);background:var(--soft);border-radius:999px;padding:3px 8px;font-size:11px;color:var(--muted);font-weight:800}.sumBox{position:sticky;bottom:74px;z-index:12;background:rgba(255,255,255,.98);border:1px solid var(--line);border-radius:18px;padding:10px;box-shadow:0 10px 30px rgba(0,0,0,.12);margin-top:10px}.sumrow{display:flex;align-items:center;gap:10px}.total{font-size:26px;font-weight:950;line-height:1;text-align:right}.item{display:grid;grid-template-columns:1fr auto;gap:8px;border:1px solid var(--line);border-radius:16px;padding:10px;margin-top:8px;background:#fff}.itemName{font-weight:900}.itemMeta{font-size:12px;color:var(--muted);margin-top:3px}.qtyCtl{display:flex;align-items:center;gap:6px}.round{width:34px;height:34px;border:1px solid var(--line);border-radius:12px;background:var(--soft);font-weight:950}.priceLine{font-weight:900;text-align:right;white-space:nowrap}.bottomnav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(255,255,255,.98);border-top:1px solid var(--line);padding:8px 8px calc(8px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.navbtn{border:0;background:transparent;border-radius:14px;padding:7px 4px;color:var(--muted);font-weight:850;font-size:12px}.navbtn.active{background:#111827;color:#fff}.drawer{position:fixed;inset:0;background:rgba(0,0,0,.28);z-index:60;display:none}.drawer.show{display:block}.panel{position:absolute;right:0;top:0;bottom:0;width:min(82vw,330px);background:#fff;padding:16px;box-shadow:-14px 0 30px rgba(0,0,0,.18)}.panel button{margin-top:8px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}.preview{border:1px dashed #cbd5e1;border-radius:16px;padding:12px;white-space:pre-wrap;line-height:1.5;background:#fff;font-size:14px}.histCard{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;border:1px solid var(--line);border-radius:16px;padding:10px;background:#fff;margin-top:8px}.histNo{font-size:17px;font-weight:950}.histAmt{font-size:18px;font-weight:950;text-align:right}.status{font-size:11px;border-radius:999px;padding:3px 8px;background:#eef2ff;color:#3730a3;font-weight:900;display:inline-block}.status.done,.status.paid{background:#ecfdf5;color:#047857}.status.cancel{background:#fef2f2;color:#b91c1c}.filterbar{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}.filterbtn{border:1px solid var(--line);background:#fff;border-radius:12px;padding:8px 4px;font-size:12px;font-weight:850;color:var(--muted)}.filterbtn.active{background:#111827;color:#fff;border-color:#111827}.dangerText{color:var(--danger);font-weight:900}.sectionTitle{font-weight:950;font-size:16px;margin-bottom:8px}.fab{position:fixed;right:16px;bottom:92px;z-index:32;width:58px;height:58px;border-radius:22px;background:var(--blue);color:#fff;border:0;font-size:30px;font-weight:900;box-shadow:0 12px 28px rgba(36,84,216,.35)}.sheet{position:fixed;left:0;right:0;bottom:0;z-index:70;background:#fff;border-radius:24px 24px 0 0;padding:14px 14px calc(14px + env(safe-area-inset-bottom));box-shadow:0 -12px 30px rgba(0,0,0,.18);max-height:82vh;overflow:auto;display:none}.sheet.show{display:block}.sheetBackdrop{position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:65;display:none}.sheetBackdrop.show{display:block}.prodBtn{width:100%;text-align:left;border:1px solid var(--line);background:#fff;border-radius:16px;padding:11px;margin-top:8px}.prodBtn b{display:block}.prodBtn span{font-size:12px;color:var(--muted)}.toast{position:fixed;left:12px;right:12px;bottom:86px;background:#111827;color:white;text-align:center;padding:12px;border-radius:14px;z-index:99;display:none}.login{max-width:420px;margin:50px auto}.ocrImg{max-width:100%;border:1px solid var(--line);border-radius:16px;margin-top:8px}.userRow,.prodEdit{border:1px solid var(--line);border-radius:16px;padding:10px;margin-top:8px;background:#fff}.mutedBox{background:#f8fafc;border:1px solid var(--line);border-radius:16px;padding:10px}.setupBox{background:#fff7ed;border:1px solid #fed7aa;border-radius:16px;padding:10px;margin-top:8px}.setupOk{background:#ecfdf5;border-color:#a7f3d0}.codebox{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:11px;white-space:pre-wrap;max-height:170px;overflow:auto;background:#0f172a;color:#e5e7eb;border-radius:12px;padding:10px;margin-top:8px}.compactActions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.editWarn{background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:14px;padding:8px;font-size:12px;font-weight:800;margin-top:8px}.lockBox{background:#f8fafc;border:1px solid var(--line);border-radius:14px;padding:9px;font-size:12px;color:var(--muted);margin-top:8px}.detailItem{border:1px solid var(--line);border-radius:16px;padding:10px;margin-top:8px;background:#fff}.detailItemTop{display:grid;grid-template-columns:1fr auto;gap:8px}.detailActions{display:flex;gap:6px;align-items:center;margin-top:8px}.detailActions .qtyMini{min-width:30px;text-align:center;font-weight:950}@media(min-width:760px){.app{max-width:620px}.bottomnav{max-width:620px;margin:auto}.fab{right:calc((100vw - 620px)/2 + 16px)}}
+</style>
 </head>
 <body>
-  <div id="app" style="padding:16px;font-family:system-ui">กำลังโหลด...</div>
-  <script>
-    window.addEventListener('error', function(e){
-      document.body.innerHTML = '<div style="padding:20px;font-family:system-ui;color:#111"><h2>เปิดระบบไม่ได้</h2><p>JS Error: '+(e.message||'unknown')+'</p><button onclick="localStorage.clear();location.reload()">Clear site data</button></div>';
-    });
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/app.js?v=2.2.0"></script>
+<div id="loginScreen" class="login card">
+  <h2 style="margin:0 0 6px">KHOKAI Partner POS V17</h2>
+    <label class="label">Username</label><input id="loginUser" placeholder="username ใน Supabase">
+  <label class="label" style="margin-top:8px">Password</label><input id="loginPass" type="password" placeholder="password ใน Supabase">
+  <button id="loginBtn" class="btn ok full" style="margin-top:10px">เข้าใช้งาน</button>
+</div>
+
+<div id="app" class="app hide">
+  <div class="top">
+    <div class="bar">
+      <div class="grow">
+        <div class="brand">KHOKAI Partner POS</div>
+        <div class="sub">ผู้ใช้: <b id="who"></b> · รหัส <b id="sellerCodeShow"></b></div>
+      </div>
+      <button id="searchBtn" class="iconbtn" title="ค้นหา">⌕</button>
+      <button id="menuBtn" class="iconbtn" title="เมนู">☰</button>
+    </div>
+  </div>
+
+  <section id="viewQuick">
+    <div class="card">
+      <div class="quick-head">
+        <div class="grow">
+          <div class="mini">ออเดอร์ส่งชั่วคราว</div>
+          <div id="orderNo" class="orderNo">-</div>
+        </div>
+        <span class="pill">TEMP</span>
+      </div>
+      <div class="compactActions">
+        <button id="newTempBtn" class="btn soft">เปิดเลขใหม่</button>
+        <button id="saveTempBtn" class="btn ok">บันทึก</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="bar"><div class="sectionTitle grow">สินค้า</div><button id="addProductBtn" class="btn blue small">+ เพิ่ม</button></div>
+      <div id="items"></div>
+      <div id="emptyItems" class="mutedBox mini">กด + เพิ่มสินค้า แล้วเลือกจำนวน</div>
+    </div>
+
+    <div class="card">
+      <div class="grid2">
+        <div><label class="label">ค่าส่ง</label><input id="shipping" type="number" inputmode="numeric" value="5000"></div>
+        <div><label class="label">ส่วนลด</label><input id="discount" type="number" inputmode="numeric" value="0"></div>
+      </div>
+      <label class="label" style="margin-top:8px">ข้อความเสริม</label>
+      <select id="extraSelect"></select>
+      <label class="label" style="margin-top:8px">บัญชีรับโอน</label>
+      <select id="bankSelect"></select>
+    </div>
+
+    <div class="card">
+      <div class="sectionTitle">ข้อความส่งลูกค้า</div>
+      <div id="customerText" class="preview"></div>
+    </div>
+
+    <div class="sumBox">
+      <div class="sumrow">
+        <div class="grow"><div class="mini">ยอดรวม</div><div id="itemCount" class="mini">0 รายการ</div></div>
+        <div id="total" class="total">0</div>
+      </div>
+      <button id="copyBtn" class="btn blue full" style="margin-top:9px">คัดลอกส่งลูกค้า</button>
+    </div>
+  </section>
+
+  <section id="viewHistory" class="hide">
+    <div class="card">
+      <div class="bar"><div class="sectionTitle grow">ประวัติ</div><button id="exportOmsBtn" class="btn blue small">ดาวน์โหลด OMS</button><button id="refreshHistory" class="btn soft small">รีเฟรช</button></div>
+      <div class="filterbar">
+        <button class="filterbtn active" data-filter="ACTIVE">Active</button>
+        <button class="filterbtn" data-filter="TEMP">TEMP</button>
+        <button class="filterbtn" data-filter="PAID">PAID</button>
+        <button class="filterbtn" data-filter="CANCELLED">ยกเลิก</button>
+      </div>
+      <div id="searchBox" class="hide" style="margin:8px 0"><input id="historySearch" placeholder="ค้นหาเลขออเดอร์ / ชื่อ / เบอร์"></div>
+      <div id="historyList"></div>
+    </div>
+  </section>
+
+  <section id="viewDetail" class="hide">
+    <div class="card">
+      <button id="backHistory" class="btn soft small">← กลับ</button>
+      <div class="mini" style="margin-top:10px">เลขออเดอร์</div>
+      <div id="detailOrderNo" class="orderNo">-</div>
+      <div style="margin-top:6px"><span id="detailStatus" class="status">TEMP</span></div>
+      <div id="detailEditNotice" class="editWarn hide"></div>
+    </div>
+
+    <div class="card">
+      <div class="bar"><div class="sectionTitle grow">รายการสินค้าในออเดอร์</div><button id="detailAddProduct" class="btn blue small">+ เพิ่ม</button></div>
+      <div id="detailEditLock" class="lockBox hide">ออเดอร์นี้จัดส่งแล้ว หรือถูกยกเลิกแล้ว จึงแก้ไขรายการสินค้าไม่ได้</div>
+      <div id="detailItems"></div>
+      <div class="grid2" style="margin-top:8px">
+        <div><label class="label">ค่าส่ง</label><input id="detailShipping" type="number" inputmode="numeric"></div>
+        <div><label class="label">ส่วนลด</label><input id="detailDiscount" type="number" inputmode="numeric"></div>
+      </div>
+      <div class="sumrow" style="margin-top:10px"><div class="grow mini">ยอดรวมหลังแก้ไข</div><div id="detailEditTotal" class="histAmt">0 วอน</div></div>
+      <button id="saveDetailItems" class="btn ok full" style="margin-top:8px">บันทึกการแก้ไขรายการสินค้า</button>
+    </div>
+
+    <div class="card">
+      <div class="sectionTitle">AI อ่านรูป</div>
+      <input id="ocrImage" type="file" accept="image/*" capture="environment">
+      <img id="ocrPreview" class="ocrImg hide" alt="preview">
+      <div class="grid3" style="margin-top:8px">
+        <button id="ocrAuto" class="btn blue small">AI อ่านรูป</button>
+        <button id="ocrSlip" class="btn soft small">สลิป</button>
+        <button id="ocrAddress" class="btn soft small">ที่อยู่</button>
+      </div>
+      <label class="label" style="margin-top:8px">หรือวางข้อความ OCR</label>
+      <textarea id="ocrText" placeholder="วางข้อความจากรูป แล้วกด แยกข้อมูล"></textarea>
+      <button id="parseOcr" class="btn soft full" style="margin-top:8px">แยกข้อมูลจากข้อความ</button>
+      <p class="mini">แนะนำ: ใช้ AI OCR API แบบส่งรูปแล้วคืน JSON จะอ่านชื่อไทย/ที่อยู่เกาหลี/สลิปได้ดีกว่า OCR ธรรมดา</p>
+    </div>
+
+    <div class="card">
+      <div class="sectionTitle">ข้อมูลโอนเงิน</div>
+      <div class="grid2">
+        <div><label class="label">ยอดโอน</label><input id="payAmount" type="number" inputmode="numeric"></div>
+        <div><label class="label">วันที่โอน</label><input id="payDate" type="date"></div>
+      </div>
+      <label class="label" style="margin-top:8px">เวลาโอน</label><input id="payTime" placeholder="เช่น 14:31">
+      <label class="label" style="margin-top:8px">ชื่อผู้โอน</label><input id="payerName">
+    </div>
+
+    <div class="card">
+      <div class="sectionTitle">ข้อมูลลูกค้า/จัดส่ง</div>
+      <div class="grid2">
+        <div><label class="label">Partner</label><select id="partnerSelect"></select></div>
+        <div><label class="label">ช่องทาง</label><select id="channel"><option>Facebook</option><option>LINE</option><option>Kakao</option><option>Instagram</option><option>โทรศัพท์</option><option>Walk-in</option><option>Event</option><option>ร้านอาหาร</option></select></div>
+      </div>
+      <label class="label" style="margin-top:8px">ชื่อผู้รับ</label><input id="receiverName">
+      <label class="label" style="margin-top:8px">เบอร์โทร</label><input id="receiverPhone" inputmode="tel">
+      <div class="grid2" style="margin-top:8px"><div><label class="label">รหัสไปรษณีย์</label><input id="zipcode"></div><div style="display:flex;align-items:end"><button id="addrApi" class="btn soft full">ค้นที่อยู่</button></div></div>
+      <label class="label" style="margin-top:8px">ที่อยู่</label><textarea id="address"></textarea>
+      <label class="label" style="margin-top:8px">배송메모</label><input id="shippingMemo" placeholder="เช่น 문앞 / 부재시 문앞">
+    </div>
+
+    <div class="card">
+      <div class="sectionTitle">จัดส่ง/ปิดออเดอร์</div>
+      <div class="grid2">
+        <div><label class="label">วันจัดส่ง</label><input id="shipDate" type="date"></div>
+        <div><label class="label">Tracking URL หลัก</label><input id="trackingBaseDetail" placeholder="https://.../"></div>
+      </div>
+      <label class="label" style="margin-top:8px">Tracking link</label><input id="trackingLink" placeholder="สร้างจาก URL หลัก + เลขออเดอร์">
+      <div class="compactActions">
+        <button id="completeOrder" class="btn ok">บันทึกเป็น PAID</button>
+        <button id="copyClose" class="btn blue">คัดลอกสรุปปิด</button>
+      </div>
+      <button id="cancelOrderBtn" class="btn danger full" style="margin-top:8px">ยกเลิกออเดอร์ TEMP</button>
+      <p class="mini">ปุ่มยกเลิกใช้ได้เฉพาะออเดอร์ TEMP เท่านั้น เพื่อไม่ให้ข้อมูลออเดอร์ที่จ่ายแล้วหาย</p>
+    </div>
+  </section>
+
+  <section id="viewDashboard" class="hide">
+    <div class="card"><div class="sectionTitle">สรุปยอด</div><div id="dashboard"></div></div>
+  </section>
+
+  <section id="viewSettings" class="hide">
+    <div class="card">
+      <div class="sectionTitle">Supabase</div>
+      <label class="label">Project URL</label><input id="supabaseUrl">
+      <label class="label" style="margin-top:8px">Anon key</label><input id="supabaseKey">
+      <button id="saveSupabase" class="btn ok full" style="margin-top:8px">บันทึก Supabase</button>
+      <button id="loadProducts" class="btn soft full" style="margin-top:8px">โหลด product_options</button>
+      <p id="loadStatus" class="mini"></p>
+      <div id="supabaseStatus" class="setupBox mini">ยังไม่ได้ตรวจสอบ Supabase</div>
+      <div class="grid2" style="margin-top:8px">
+        <button id="testSupabase" class="btn soft full">ทดสอบการเชื่อมต่อ</button>
+        <button id="copySql" class="btn soft full">คัดลอก SQL สร้างตาราง</button>
+      </div>
+      <div class="mutedBox mini" style="margin-top:8px">
+        ขั้นตอนที่ต้องทำครั้งเดียว:<br>
+        1) ระบบเชื่อม Supabase อัตโนมัติจากค่าในไฟล์แล้ว<br>
+        2) ถ้าตารางยังไม่พร้อม ให้รัน migration.sql ใน Supabase SQL Editor<br>
+        3) ปุ่มทดสอบใช้สำหรับเช็คสถานะเท่านั้น ไม่ต้องกดทุกครั้ง
+      </div>
+      <div id="sqlBox" class="codebox hide"></div>
+    </div>
+    <div class="card">
+      <div class="sectionTitle">สินค้าใน Partner POS</div>
+      <p class="mini">ชื่อไทย / ราคาส่ง / จำนวนถุงต่อลัง ใช้เฉพาะ Partner POS ไม่กระทบ Mini POS</p>
+      <div id="productEditList"></div>
+      <button id="saveProducts" class="btn ok full" style="margin-top:8px">บันทึกชื่อไทย/ราคาส่ง</button>
+    </div>
+    <div class="card">
+      <div class="sectionTitle">Partner</div>
+      <p class="mini">เพิ่ม Partner ไว้เลือกตอนกรอกหลังโอน</p>
+      <div id="partnerList"></div>
+      <button id="addPartner" class="btn soft full" style="margin-top:8px">+ เพิ่ม Partner</button>
+      <button id="savePartners" class="btn ok full" style="margin-top:8px">บันทึก Partner</button>
+    </div>
+    <div class="card">
+      <div class="sectionTitle">ข้อความเสริม</div>
+      <textarea id="extraMessages" placeholder="ใส่ 1 ข้อความต่อ 1 บรรทัด"></textarea>
+      <button id="saveExtras" class="btn ok full" style="margin-top:8px">บันทึกข้อความเสริม</button>
+    </div>
+    <div class="card">
+      <div class="sectionTitle">บัญชีธนาคาร</div>
+      <p class="mini">ใส่ 1 บัญชีต่อ 1 บล็อก คั่นแต่ละบัญชีด้วยบรรทัดว่าง บรรทัดแรกคือชื่อที่แสดงในตัวเลือก</p>
+      <textarea id="bankAccounts" placeholder="🏦 신한은행 Shinhan Bank\n140013678642\n메콩푸드 주식회사"></textarea>
+      <button id="saveBanks" class="btn ok full" style="margin-top:8px">บันทึกบัญชีธนาคาร</button>
+    </div>
+    <div class="card">
+      <div class="sectionTitle">User / โทนข้อความ</div>
+      <div id="userList"></div>
+      <button id="addUser" class="btn soft full" style="margin-top:8px">+ เพิ่ม User</button>
+      <button id="saveUsers" class="btn ok full" style="margin-top:8px">บันทึก Users</button>
+    </div>
+    <div class="card">
+      <div class="sectionTitle">AI OCR API</div>
+      <label class="label">Endpoint</label><input id="ocrEndpoint" placeholder="เช่น https://.../api/ocr">
+      <label class="label" style="margin-top:8px">API Key</label><input id="ocrKey" placeholder="เก็บไว้ในเครื่องนี้">
+      <button id="saveOcr" class="btn ok full" style="margin-top:8px">บันทึก AI OCR</button>
+      <p class="mini">Production แนะนำให้ทำ Netlify Function เป็นตัวกลาง ห้ามใส่ OpenAI key ตรง ๆ ในหน้าเว็บสาธารณะ</p>
+    </div>
+    <div class="card">
+      <div class="sectionTitle">Tracking</div>
+      <label class="label">URL หลัก</label><input id="trackingBase" placeholder="https://tracking.example.com/status">
+      <button id="saveTracking" class="btn ok full" style="margin-top:8px">บันทึก Tracking URL</button>
+    </div>
+  </section>
+</div>
+
+<button id="fab" class="fab hide">+</button>
+<div class="bottomnav hide" id="bottomnav">
+  <button data-view="quick" class="navbtn active">🏠<br>ออเดอร์</button>
+  <button data-view="history" class="navbtn">📜<br>ประวัติ</button>
+  <button data-view="dashboard" class="navbtn">📊<br>สรุป</button>
+  <button data-view="settings" class="navbtn">⚙️<br>ตั้งค่า</button>
+</div>
+
+<div id="drawer" class="drawer"><div class="panel">
+  <div class="bar"><b class="grow">เมนู</b><button id="closeMenu" class="iconbtn">×</button></div>
+  <button data-view="quick" class="btn ghost full">เปิดออเดอร์ด่วน</button>
+  <button data-view="history" class="btn ghost full">ประวัติ</button>
+  <button data-view="dashboard" class="btn ghost full">สรุปยอด</button>
+  <button data-view="settings" class="btn ghost full">ตั้งค่า</button>
+  <button id="logout" class="btn danger full">ออกจากระบบ</button>
+</div></div>
+<div id="sheetBackdrop" class="sheetBackdrop"></div>
+<div id="productSheet" class="sheet">
+  <div class="bar"><b class="grow">เลือกสินค้า</b><button id="closeSheet" class="iconbtn">×</button></div>
+  <input id="productSearch" placeholder="ค้นหาสินค้า" style="margin-top:8px">
+  <div id="productButtons"></div>
+</div>
+<div id="toast" class="toast"></div>
+<canvas id="canvas" class="hide"></canvas>
+
+<script>
+(function(){
+var LS='khokai_partner_v17_';
+var ORDER_TABLE='khokai_partner_orders';
+var TRACKING_TABLE='khokai_tracking';
+var DEFAULT_SUPABASE_URL='https://wzmzafyccyqdhcbcwkmu.supabase.co';
+var DEFAULT_SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6bXphZnljY3lxZGhjYmN3a211Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxMTMzNjMsImV4cCI6MjA5ODY4OTM2M30.7JC8eR5vwSpIFi2Ykd0Ggzre5HRKfgDGyhfgjxQCzng'; // anon public key
+var remoteReady=false, remoteError='';
+var defaultProducts=[
+ {option_id:'1001',display_product_id:'2001',kr_name:'여우본 700g',thai_name:'หมูยอ 700g',page_price:10000,weight:700,active:'yes'},
+ {option_id:'1002',display_product_id:'2002',kr_name:'돼지볼 커카이 1kg',thai_name:'ลูกชิ้นหมู 1kg',page_price:14900,weight:1000,active:'yes'},
+ {option_id:'1003',display_product_id:'2003',kr_name:'미트볼 커카이 3호 1kg',thai_name:'ลูกชิ้นเอ็นไก่ 1kg',page_price:14900,weight:1000,active:'yes'},
+ {option_id:'1004',display_product_id:'2004',kr_name:'소스 80g',thai_name:'น้ำจิ้ม 80g',page_price:1500,weight:80,active:'yes'}
+];
+var defaultUsers=[{username:'admin',password:'1234',sellerCode:'01',tone:'ครับ',role:'admin'},{username:'seller1',password:'1234',sellerCode:'11',tone:'ค่ะ',role:'seller'}];
+var defaultBanks=[{label:'🏦 신한은행 Shinhan Bank',text:'🏦 신한은행 Shinhan Bank\n140013678642\n메콩푸드 주식회사'}];
+var products=load('products',defaultProducts), users=load('users',[]), partners=load('partners',[]), orders=load('orders',[]), extras=load('extras',['โอนแล้ว รบกวนแจ้งสลิป เพื่อทำการจัดส่งสินค้า','สินค้าจัดส่งแบบแช่แข็ง พร้อมไอซ์แพ็ก','รบกวนตรวจสอบชื่อ ที่อยู่ และเบอร์โทรก่อนโอน']), banks=load('banks',defaultBanks);
+var currentUser=null,currentOrder=null,currentView='quick',editingId=null,ocrImageData=null,historyFilter='ACTIVE',productSheetTarget='quick';
+function $(id){return document.getElementById(id)}
+function load(k,d){try{return JSON.parse(localStorage.getItem(LS+k)||'null')||d}catch(e){return d}}
+function save(k,v){localStorage.setItem(LS+k,JSON.stringify(v))}
+function money(n){return (Number(n)||0).toLocaleString('ko-KR')+' วอน'}
+function toast(t){var x=$('toast');x.textContent=t;x.style.display='block';setTimeout(function(){x.style.display='none'},1800)}
+function todayYYMMDD(){var d=new Date();return String(d.getFullYear()).slice(2)+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')}
+function newOrderNo(){var y=todayYYMMDD();var prefix=y+'-';var max=0;orders.forEach(function(o){if(String(o.order_no||'').startsWith(prefix)){var n=Number(String(o.order_no).slice(7,10));if(n>max)max=n}});var seq=String(max+1).padStart(3,'0');var rand=String(Math.floor(Math.random()*90)+10);return y+'-'+seq+rand}
+function activeProducts(){return products.filter(function(p){return String(p.active||'yes').toLowerCase()!=='no'})}
+function productByOpt(opt){return products.find(function(p){return String(p.option_id)===String(opt)})||{thai_name:'สินค้า',page_price:0}}
+function ensureOrder(){
+  if(!currentOrder){
+    currentOrder={id:'o_'+Date.now(),order_no:newOrderNo(),status:'TEMP',seller:currentUser.username,sellerCode:currentUser.sellerCode,items:[],shipping:5000,discount:0,extraIndex:0,bankIndex:0,created_at:new Date().toISOString()};
+  }
+}
+function orderTotal(o){var sub=(o.items||[]).reduce(function(s,it){return s+(Number(it.qty)||0)*(Number(it.price)||0)},0);return sub+(Number(o.shipping)||0)-(Number(o.discount)||0)}
+async function saveCurrentTemp(){ensureOrder();if((currentOrder.items||[]).length===0){if(!confirm('ออเดอร์นี้ยังไม่มีสินค้า ต้องการบันทึก TEMP ไว้จริงไหม?'))return}currentOrder.status=currentOrder.status||'TEMP';currentOrder.updated_at=new Date().toISOString();var idx=orders.findIndex(function(o){return o.id===currentOrder.id});if(idx>=0)orders[idx]=currentOrder;else orders.unshift(currentOrder);save('orders',orders);await syncOrderToSupabase(currentOrder);toast(remoteReady?'บันทึกชั่วคราวลง Supabase แล้ว':'บันทึกในเครื่องแล้ว / Supabase: '+(remoteError||'ยังไม่พร้อม'))}
+var autoTimer=null;function autosaveDraft(){ensureOrder();currentOrder.updated_at=new Date().toISOString();var idx=orders.findIndex(function(o){return o.id===currentOrder.id});if(idx>=0)orders[idx]=currentOrder;else orders.unshift(currentOrder);save('orders',orders);clearTimeout(autoTimer);autoTimer=setTimeout(function(){syncOrderToSupabase(currentOrder)},700)}
+function renderQuick(){ensureOrder();$('orderNo').textContent=currentOrder.order_no;$('shipping').value=currentOrder.shipping||0;$('discount').value=currentOrder.discount||0;renderItems();renderExtras();renderBankSelect();calcText()}
+function renderItems(){var box=$('items');box.innerHTML='';var items=currentOrder.items||[];$('emptyItems').classList.toggle('hide',items.length>0);items.forEach(function(it,idx){var p=productByOpt(it.option_id);var div=document.createElement('div');div.className='item';div.innerHTML='<div><div class="itemName">'+escapeHtml(p.thai_name||it.name||'สินค้า')+'</div><div class="itemMeta">'+(Number(it.qty)||0)+' x '+money(it.price)+' = '+money((Number(it.qty)||0)*(Number(it.price)||0))+'</div><div class="qtyCtl" style="margin-top:7px"><button class="round minus">−</button><b>'+it.qty+'</b><button class="round plus">+</button><button class="round del" style="margin-left:8px;color:#b91c1c">×</button></div></div><div class="priceLine">'+money((Number(it.qty)||0)*(Number(it.price)||0))+'</div>';box.appendChild(div);div.querySelector('.minus').onclick=function(){it.qty=Math.max(1,(Number(it.qty)||1)-1);calcText();autosaveDraft();renderItems()};div.querySelector('.plus').onclick=function(){it.qty=(Number(it.qty)||0)+1;calcText();autosaveDraft();renderItems()};div.querySelector('.del').onclick=function(){currentOrder.items.splice(idx,1);calcText();autosaveDraft();renderItems()};})}
+function renderExtras(){var sel=$('extraSelect');sel.innerHTML='<option value="-1">ไม่ใส่ข้อความเสริม</option>'+extras.map(function(x,i){return '<option value="'+i+'">'+escapeHtml(x.slice(0,42))+'</option>'}).join('');sel.value=currentOrder.extraIndex==null?0:currentOrder.extraIndex}
+function renderBankSelect(){var sel=$('bankSelect');if(!sel)return;sel.innerHTML=banks.map(function(b,i){return '<option value="'+i+'">'+escapeHtml(b.label||('บัญชี '+(i+1)))+'</option>'}).join('');if(!banks.length){sel.innerHTML='<option value="-1">ยังไม่มีบัญชี</option>'}sel.value=currentOrder.bankIndex==null?0:currentOrder.bankIndex}
+function bankText(idx){var b=banks[Number(idx)||0]||banks[0];return b&&b.text?b.text:''}
+function parseBanks(raw){return String(raw||'').split(/\n\s*\n/).map(function(block){var lines=block.split(/\n/).map(function(x){return x.trim()}).filter(Boolean);return lines.length?{label:lines[0],text:lines.join('\n')}:null}).filter(Boolean)}
+function calcText(){if(!currentOrder)return '';currentOrder.shipping=Number($('shipping').value)||0;currentOrder.discount=Number($('discount').value)||0;currentOrder.extraIndex=Number($('extraSelect').value);currentOrder.bankIndex=Number($('bankSelect')?$('bankSelect').value:0);var tone=currentUser.tone||'';var lines=currentOrder.items||[];var total=orderTotal(currentOrder);$('total').textContent=money(total);$('itemCount').textContent=lines.length+' รายการ';var txt='สรุปออเดอร์ส่ง '+currentOrder.order_no+(tone?tone:'')+'\n\n';lines.forEach(function(it){var p=productByOpt(it.option_id);txt+='• '+(p.thai_name||it.name)+' ×'+it.qty+'\n'});txt+='\nค่าส่ง '+money(currentOrder.shipping);if(currentOrder.discount>0)txt+='\nส่วนลด -'+money(currentOrder.discount);txt+='\n\nรวมยอดโอน '+money(total)+(tone?' '+tone:'');var ex=extras[currentOrder.extraIndex];if(ex)txt+='\n\n'+ex;var bt=bankText(currentOrder.bankIndex);if(bt)txt+='\n\n'+bt;$('customerText').textContent=txt;return txt}
+async function showView(v){if(v==='settings'&&!isAdmin()){toast('เมนูตั้งค่าใช้ได้เฉพาะ admin');v='quick'}currentView=v;['Quick','History','Detail','Dashboard','Settings'].forEach(function(n){$('view'+n).classList.add('hide')});var map={quick:'Quick',history:'History',detail:'Detail',dashboard:'Dashboard',settings:'Settings'};$('view'+map[v]).classList.remove('hide');document.querySelectorAll('.navbtn').forEach(function(b){b.classList.toggle('active',b.dataset.view===v)});$('fab').classList.toggle('hide',v!=='quick');if(v==='history'){await fetchOrdersFromSupabase();renderHistory()}if(v==='dashboard'){await fetchOrdersFromSupabase();renderDashboard()}if(v==='settings')renderSettings();closeDrawer()}
+function statusClass(st){st=String(st||'TEMP');if(st==='PAID'||st==='COMPLETED'||st==='SHIPPED')return 'paid';if(st==='CANCELLED')return 'cancel';return ''}
+function statusLabel(st){if(st==='COMPLETED')return 'PAID';return st||'TEMP'}
+function canEditOrder(o){var st=String((o&&o.status)||'TEMP');return st!=='SHIPPED'&&st!=='CANCELLED'}
+function detailOrder(){return orders.find(function(x){return x.id===editingId})||null}
+function markOrderEdited(o,action){
+  if(!o)return;
+  if(!Array.isArray(o.edit_logs))o.edit_logs=[];
+  o.edit_logs.unshift({at:new Date().toISOString(),by:(currentUser&&currentUser.username)||'',action:action||'แก้ไขรายการสินค้า'});
+  o.last_edited_at=new Date().toISOString();
+  o.last_edited_by=(currentUser&&currentUser.username)||'';
+  o.updated_at=new Date().toISOString();
+}
+function renderDetailOrderItems(o){
+  o=o||detailOrder(); if(!o)return;
+  var editable=canEditOrder(o);
+  var box=$('detailItems'); if(!box)return;
+  $('detailAddProduct').classList.toggle('hide',!editable);
+  $('saveDetailItems').classList.toggle('hide',!editable);
+  $('detailEditLock').classList.toggle('hide',editable);
+  $('detailShipping').disabled=!editable; $('detailDiscount').disabled=!editable;
+  $('detailShipping').value=Number(o.shipping)||0; $('detailDiscount').value=Number(o.discount)||0;
+  var notice=$('detailEditNotice');
+  if(o.last_edited_at){
+    var dd=new Date(o.last_edited_at);
+    notice.textContent='แก้ไขล่าสุด '+dd.toLocaleString('th-TH',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+' โดย '+(o.last_edited_by||'-');
+    notice.classList.remove('hide');
+  }else notice.classList.add('hide');
+  box.innerHTML='';
+  (o.items||[]).forEach(function(it,idx){
+    var p=productByOpt(it.option_id);
+    var line=(Number(it.qty)||0)*(Number(it.price)||0);
+    var d=document.createElement('div');d.className='detailItem';
+    d.innerHTML='<div class="detailItemTop"><div><b>'+escapeHtml(p.thai_name||it.name||'สินค้า')+'</b><div class="itemMeta">option_id '+escapeHtml(it.option_id||'')+' / display '+escapeHtml(it.display_product_id||p.display_product_id||'')+'</div><div class="itemMeta">'+money(it.price)+' × '+(it.qty||0)+'</div></div><div class="priceLine">'+money(line)+'</div></div>'+(editable?'<div class="detailActions"><button class="round minus">−</button><span class="qtyMini">'+(it.qty||0)+'</span><button class="round plus">+</button><button class="btn danger small del" style="margin-left:auto">ลบ</button></div>':'');
+    box.appendChild(d);
+    if(editable){
+      d.querySelector('.minus').onclick=function(){it.qty=Math.max(1,(Number(it.qty)||1)-1);markOrderEdited(o,'ลดจำนวน '+(p.thai_name||it.option_id));save('orders',orders);renderDetailOrderItems(o)};
+      d.querySelector('.plus').onclick=function(){it.qty=(Number(it.qty)||0)+1;markOrderEdited(o,'เพิ่มจำนวน '+(p.thai_name||it.option_id));save('orders',orders);renderDetailOrderItems(o)};
+      d.querySelector('.del').onclick=function(){if(confirm('ลบ '+(p.thai_name||'สินค้า')+' ออกจากออเดอร์?')){o.items.splice(idx,1);markOrderEdited(o,'ลบสินค้า '+(p.thai_name||it.option_id));save('orders',orders);renderDetailOrderItems(o)}};
+    }
+  });
+  if(!(o.items||[]).length)box.innerHTML='<div class="mutedBox mini">ยังไม่มีสินค้าในออเดอร์นี้</div>';
+  $('detailEditTotal').textContent=money(orderTotal(o));
+}
+function saveDetailAmounts(){var o=detailOrder();if(!o||!canEditOrder(o))return;o.shipping=Number($('detailShipping').value)||0;o.discount=Number($('detailDiscount').value)||0;markOrderEdited(o,'แก้ค่าส่ง/ส่วนลด');save('orders',orders);renderDetailOrderItems(o)}
+
+function cancelOrder(id){var o=orders.find(function(x){return x.id===id});if(!o)return;if((o.status||'TEMP')!=='TEMP'){toast('ยกเลิกได้เฉพาะ TEMP');return}if(!confirm('ยกเลิกออเดอร์ '+o.order_no+' ?\nข้อมูลจะไม่ถูกลบ แต่จะถูกซ่อนไว้ในสถานะ CANCELLED'))return;o.status='CANCELLED';o.cancelled_at=new Date().toISOString();o.updated_at=new Date().toISOString();save('orders',orders);syncOrderToSupabase(o);renderHistory();toast('ยกเลิกออเดอร์แล้ว')}
+function renderHistory(){var q=($('historySearch').value||'').toLowerCase();var list=$('historyList');list.innerHTML='';var data=orders.filter(function(o){var st=o.status||'TEMP';if(historyFilter==='ACTIVE'&&st==='CANCELLED')return false;if(historyFilter!=='ACTIVE'&&st!==historyFilter)return false;return !q||JSON.stringify(o).toLowerCase().includes(q)});data.forEach(function(o){var d=new Date(o.created_at||Date.now());var canCancel=(o.status||'TEMP')==='TEMP';var tracking=(o.tracking_url||o.tracking_link||'');var trackingLine=tracking?'<div class="mini"><a href="'+escapeAttr(tracking)+'" target="_blank">ติดตามพัสดุ</a>'+((o.tracking_no)?' · '+escapeHtml(o.tracking_no):'')+'</div>':'';var c=document.createElement('div');c.className='histCard';var editBtn=canEditOrder(o)?' <button class="btn blue small edit">แก้ไข</button>':'';var paidInfo=(String(o.status||'')==='PAID')?'<div class="mini">ลูกค้า: '+escapeHtml(o.customer_name||o.receiver_name||'-')+' · ช่องทาง: '+escapeHtml(o.channel||'-')+'</div>':'';c.innerHTML='<div><div class="histNo">'+escapeHtml(o.order_no||'-')+'</div><div class="mini">'+escapeHtml(o.seller||'')+' · '+d.toLocaleString('th-TH',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'})+'</div><span class="status '+statusClass(o.status)+'">'+escapeHtml(statusLabel(o.status))+'</span>'+paidInfo+trackingLine+(o.last_edited_at?'<div class="editWarn">แก้ไขล่าสุด '+new Date(o.last_edited_at).toLocaleString('th-TH',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</div>':'')+'</div><div><div class="histAmt">'+money(orderTotal(o))+'</div><button class="btn soft small open">เปิด</button>'+editBtn+(canCancel?' <button class="btn danger small cancel">ยกเลิก</button>':'')+'</div>';list.appendChild(c);c.querySelector('.open').onclick=function(){openDetail(o.id)};var eb=c.querySelector('.edit');if(eb)eb.onclick=function(){openDetail(o.id);setTimeout(function(){var el=$('detailItems');if(el)el.scrollIntoView({behavior:'smooth',block:'start'})},80)};var cb=c.querySelector('.cancel');if(cb)cb.onclick=function(){cancelOrder(o.id)}});if(!list.innerHTML)list.innerHTML='<div class="mutedBox mini">ยังไม่มีประวัติในตัวกรองนี้</div>';if(!remoteReady){var w=document.createElement('div');w.className='setupBox mini';w.style.marginTop='8px';w.innerHTML='<b>Supabase ยังไม่พร้อม</b><br>'+escapeHtml(remoteError||'ยังไม่ได้ตั้งค่า key / ตาราง')+'<br><button id="goSetupFromHistory" class="btn soft small" style="margin-top:8px">ไปตั้งค่า Supabase</button>';list.prepend(w);var gs=document.getElementById('goSetupFromHistory');if(gs)gs.onclick=function(){showView('settings')}}}
+function openDetail(id){editingId=id;var o=orders.find(function(x){return x.id===id});if(!o)return;fillDetail(o);showView('detail')}
+function fillDetail(o){$('detailOrderNo').textContent=o.order_no;$('detailStatus').textContent=statusLabel(o.status);$('detailStatus').className='status '+statusClass(o.status);if($('cancelOrderBtn'))$('cancelOrderBtn').classList.toggle('hide',(o.status||'TEMP')!=='TEMP');$('payAmount').value=o.payment_amount||orderTotal(o);$('payDate').value=o.payment_date||'';$('payTime').value=o.payment_time||'';$('payerName').value=o.payer_name||'';renderPartnerSelect(o.partner_index);$('channel').value=o.channel||'Kakao';$('receiverName').value=o.receiver_name||'';$('receiverPhone').value=o.receiver_phone||'';$('zipcode').value=o.zipcode||'';$('address').value=o.address||'';$('shippingMemo').value=o.shipping_memo||'';$('shipDate').value=o.ship_date||'';var base=localStorage.getItem(LS+'tracking_base')||'';$('trackingBaseDetail').value=o.tracking_base||base;$('trackingLink').value=o.tracking_link||o.tracking_url||makeTracking(base,o.order_no);renderDetailOrderItems(o)}
+function collectDetail(){var o=orders.find(function(x){return x.id===editingId});if(!o)return null;o.payment_amount=Number($('payAmount').value)||0;o.payment_date=$('payDate').value;o.payment_time=$('payTime').value.trim();o.payer_name=$('payerName').value.trim();o.partner_index=$('partnerSelect').value;o.customer_name=(partners[Number(o.partner_index)]||{}).name||'';o.channel=$('channel').value||((partners[Number(o.partner_index)]||{}).channel)||'Kakao';o.receiver_name=$('receiverName').value.trim();o.receiver_phone=$('receiverPhone').value.trim();o.zipcode=$('zipcode').value.trim();o.address=$('address').value.trim();o.shipping_memo=$('shippingMemo').value.trim();o.ship_date=$('shipDate').value;o.tracking_base=$('trackingBaseDetail').value.trim();o.tracking_link=$('trackingLink').value.trim()||makeTracking(o.tracking_base,o.order_no);o.updated_at=new Date().toISOString();return o}
+function makeTracking(base,orderNo){if(!base)return '';return base.replace(/\/$/,'')+'/'+encodeURIComponent(orderNo)}
+function closeMessage(o){
+  var tone=(users.find(function(u){return u.username===o.seller})||currentUser||{}).tone||'';
+  var txt='สรุปออเดอร์ส่ง '+o.order_no+(tone?tone:'')+'\n\n';
+  (o.items||[]).forEach(function(it){var p=productByOpt(it.option_id);txt+='• '+(p.thai_name||it.name)+' ×'+it.qty+'\n';});
+  var shipping=Number(o.shipping)||0; var discount=Number(o.discount)||0; var total=orderTotal(o);
+  txt+='\nค่าส่ง '+money(shipping); if(discount>0)txt+='\nส่วนลด -'+money(discount); txt+='\nยอดรวม '+money(total);
+  txt+='\n\n✅ ชำระแล้ว '+money(o.payment_amount||total);
+  if(o.payer_name)txt+='\nผู้โอน: '+o.payer_name;
+  var payDateTime=[o.payment_date||'',o.payment_time||''].filter(Boolean).join(' '); if(payDateTime)txt+='\nวันที่: '+payDateTime;
+  if(o.ship_date)txt+='\n\n🚚 กำหนดจัดส่ง: '+o.ship_date;
+  if(o.receiver_name)txt+='\nผู้รับ: '+o.receiver_name;
+  if(o.receiver_phone)txt+='\nโทร: '+o.receiver_phone;
+  var fullAddress=(o.address||'').trim(); var memo=(o.shipping_memo||'').trim(); if(fullAddress||memo){txt+='\nที่อยู่: '+fullAddress+(memo?' ('+memo+')':'');}
+  if(o.tracking_link)txt+='\n\nติดตามสถานะ\n'+o.tracking_link;
+  txt+='\n\nขอบคุณที่อุดหนุน'+(tone?tone:'')+' 🙏';
+  return txt
+}
+function renderDashboard(){
+  var by={}, byShip={};
+  function cleanShipDate(v){
+    v=String(v||'').trim();
+    if(!v)return '';
+    var m=v.match(/^(20[0-9]{2})[-.\/](0?[1-9]|1[0-2])[-.\/](0?[1-9]|[12][0-9]|3[01])/);
+    if(m)return m[1]+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[3]).padStart(2,'0');
+    return v.slice(0,10);
+  }
+  var missingShipDate=0, eligibleOrders=0;
+  orders.forEach(function(o){
+    var u=o.seller||'-';
+    var st=String(o.status||'TEMP').toUpperCase();
+    if(!by[u])by[u]={count:0,temp:0,paid:0,cancel:0,total:0};
+    by[u].count++;
+    if(st==='PAID'||st==='COMPLETED'||st==='SHIPPED')by[u].paid++;
+    else if(st==='CANCELLED')by[u].cancel++;
+    else by[u].temp++;
+    if(st!=='CANCELLED')by[u].total+=orderTotal(o);
+
+    var sd=cleanShipDate(o.ship_date||o.shipping_date||o.delivery_date||o.shipped_at||o.shipping_at);
+    if(st==='PAID'||st==='COMPLETED'||st==='SHIPPED'){
+      eligibleOrders++;
+      if(!sd){missingShipDate++;return}
+      if(!byShip[sd])byShip[sd]={orders:0,items:0,total:0,paid:0,shipped:0,channels:{},products:{}};
+      byShip[sd].orders++;
+      byShip[sd].total+=orderTotal(o);
+      byShip[sd].items+=(o.items||[]).reduce(function(a,it){return a+(Number(it.qty)||0)},0);
+      if(st==='SHIPPED'||st==='COMPLETED')byShip[sd].shipped++;else byShip[sd].paid++;
+      var ch=o.channel||'ไม่ระบุช่องทาง';
+      byShip[sd].channels[ch]=(byShip[sd].channels[ch]||0)+orderTotal(o);
+      (o.items||[]).forEach(function(it){
+        var p=productByOpt(it.option_id)||{};
+        var did=String(it.display_product_id||p.display_product_id||'NO_DISPLAY').trim()||'NO_DISPLAY';
+        var qty=Number(it.qty)||0;
+        var line=qty*(Number(it.price)||Number(p.page_price)||Number(p.price)||0);
+        if(!byShip[sd].products[did])byShip[sd].products[did]={display_product_id:did,name:(p.thai_name||it.name||p.kr_name||did),qty:0,sales:0,orders:{}};
+        byShip[sd].products[did].qty+=qty;
+        byShip[sd].products[did].sales+=line;
+        byShip[sd].products[did].orders[o.order_no||o.id]=true;
+      });
+    }
+  });
+  var daily=Object.keys(byShip).sort().reverse().map(function(d){
+    var x=byShip[d];
+    var ch=Object.keys(x.channels).sort().map(function(k){return escapeHtml(k)+' '+money(x.channels[k])}).join(' · ');
+    var prod=Object.keys(x.products||{}).sort(function(a,b){return (x.products[b].qty||0)-(x.products[a].qty||0)}).map(function(k){
+      var pr=x.products[k];
+      var orderCount=Object.keys(pr.orders||{}).length;
+      return '<div class="mini" style="display:flex;justify-content:space-between;gap:8px;border-top:1px dashed #e5e7eb;padding-top:5px;margin-top:5px"><span><b>'+escapeHtml(pr.name||k)+'</b><br><span class="muted">Display '+escapeHtml(k)+' · '+orderCount+' ออเดอร์</span></span><span style="text-align:right;white-space:nowrap">'+(pr.qty||0)+' ชิ้น<br>'+money(pr.sales||0)+'</span></div>';
+    }).join('');
+    return '<div class="histCard" style="display:block"><div style="display:flex;justify-content:space-between;gap:10px"><div><div class="histNo">'+escapeHtml(d)+'</div><div class="mini">ออเดอร์ '+x.orders+' · สินค้า '+x.items+' ชิ้น · รอส่ง '+x.paid+' · ส่งแล้ว '+x.shipped+'</div><div class="mini">'+(ch||'-')+'</div></div><div class="histAmt">'+money(x.total)+'</div></div><div style="margin-top:8px">'+(prod||'<div class="mini muted">ไม่มีรายการสินค้า</div>')+'</div></div>';
+  }).join('');
+  if(!daily){
+    daily='<div class="mutedBox mini">ยังไม่มีข้อมูลยอดขายตามวันจัดส่ง<br>ต้องมีออเดอร์สถานะ PAID/SHIPPED และกรอกวันจัดส่ง</div>';
+  }
+  if(missingShipDate){
+    daily='<div class="mutedBox mini">มีออเดอร์ PAID/SHIPPED ที่ยังไม่กรอกวันจัดส่ง '+missingShipDate+' ออเดอร์</div>'+daily;
+  }
+  var seller=Object.keys(by).map(function(u){var x=by[u];return '<div class="histCard"><div><b>'+escapeHtml(u)+'</b><div class="mini">ทั้งหมด '+x.count+' · PAID '+x.paid+' · TEMP '+x.temp+' · ยกเลิก '+x.cancel+'</div></div><div class="histAmt">'+money(x.total)+'</div></div>'}).join('')||'<div class="mutedBox mini">ยังไม่มีข้อมูล</div>';
+  $('dashboard').innerHTML='<div class="sectionTitle">ยอดขายรายวันตามวันจัดส่ง</div>'+daily+'<div class="sectionTitle" style="margin-top:14px">สรุปตามผู้ขาย</div>'+seller;
+}
+function renderPartnerSelect(selected){var sel=$('partnerSelect');if(!sel)return;sel.innerHTML='<option value="">เลือก Partner หลังโอน</option>'+partners.map(function(p,i){return '<option value="'+i+'">'+escapeHtml(p.name||p.partner_name||('Partner '+(i+1)))+'</option>'}).join('');if(selected!=null&&selected!=='')sel.value=String(selected)}
+function renderPartners(){var box=$('partnerList');if(!box)return;box.innerHTML='';partners.forEach(function(p,i){var d=document.createElement('div');d.className='prodEdit';d.innerHTML='<label class="label">ชื่อ Partner</label><input class="pn" value="'+escapeAttr(p.name||'')+'"><div class="grid2" style="margin-top:8px"><div><label class="label">ช่องทาง</label><input class="ch" value="'+escapeAttr(p.channel||'Kakao')+'"></div><div><label class="label">เบอร์/ID</label><input class="ct" value="'+escapeAttr(p.contact||'')+'"></div></div><label class="label" style="margin-top:8px">ที่อยู่/หมายเหตุ</label><input class="ad" value="'+escapeAttr(p.address||'')+'">';box.appendChild(d);});}
+async function fetchPartnersFromSupabase(){var sb=sbClient();if(!sb)return false;try{var r=await sb.from('partner_master').select('*').order('name',{ascending:true}).limit(1000);if(r.error)throw r.error;partners=(r.data||[]).map(function(x){return {id:x.id,name:x.name||x.partner_name||'',channel:x.channel||'',contact:x.contact||x.phone||x.kakao||'',address:x.address||''}});save('partners',partners);renderPartnerSelect();return true}catch(e){console.warn('partner load failed',e);return false}}
+async function savePartnersToSupabase(){var sb=sbClient();if(!sb){toast('ยังเชื่อม Supabase ไม่ได้');return false}var rows=[];document.querySelectorAll('#partnerList .prodEdit').forEach(function(d){var name=d.querySelector('.pn').value.trim();if(!name)return;rows.push({name:name,channel:d.querySelector('.ch').value.trim(),contact:d.querySelector('.ct').value.trim(),address:d.querySelector('.ad').value.trim(),active:true,updated_at:new Date().toISOString()});});try{if(rows.length){var r=await sb.from('partner_master').upsert(rows,{onConflict:'name'}).select();if(r.error)throw r.error;partners=(r.data||rows).map(function(x){return {id:x.id,name:x.name,channel:x.channel,contact:x.contact,address:x.address}});save('partners',partners);}renderPartners();renderPartnerSelect();toast('บันทึก Partner แล้ว');return true}catch(e){toast('บันทึก Partner ไม่ได้: '+(e.message||e));return false}}
+function renderSettings(){ $('supabaseUrl').value=localStorage.getItem(LS+'supabase_url')||DEFAULT_SUPABASE_URL;$('supabaseKey').value=localStorage.getItem(LS+'supabase_key')||DEFAULT_SUPABASE_ANON_KEY;$('trackingBase').value=localStorage.getItem(LS+'tracking_base')||'';$('ocrEndpoint').value=localStorage.getItem(LS+'ocr_endpoint')||'';$('ocrKey').value=localStorage.getItem(LS+'ocr_key')||'';$('extraMessages').value=extras.join('\n');$('bankAccounts').value=banks.map(function(b){return b.text}).join('\n\n');renderProductEdits();renderPartners();renderUsers();if(remoteReady){fetchUsersFromSupabase().then(function(){renderUsers()})}}
+function krDisplay(p){var fields=['product_name_kr','product_name','seller_product_name','display_product_name','상품명','제품명','batch_name','name','option_name_kr','option_name','packing_name'];var vals=[];fields.forEach(function(k){if(p[k]!=null&&String(p[k]).trim()){var v=String(p[k]).trim();if(vals.indexOf(v)<0)vals.push(v)}});return vals.slice(0,3).join(' / ') || p.kr_name || ''}
+function renderProductEdits(){var box=$('productEditList');box.innerHTML='';products.forEach(function(p,i){var d=document.createElement('div');d.className='prodEdit';var kr=p.pick_name||p.kr_name||krDisplay(p);d.innerHTML='<div class="mini"><b>🇰🇷 '+escapeHtml(kr||'-')+'</b><br>Option ID: '+escapeHtml(p.option_id||'')+'<br>Display ID: '+escapeHtml(p.display_product_id||'')+'</div><label class="label">ชื่อไทยสำหรับขาย/หยิบ</label><input class="tn" value="'+escapeAttr(p.thai_name||'')+'"><div class="grid2" style="margin-top:8px"><div><label class="label">ราคาส่ง</label><input class="pp" type="number" value="'+(p.partner_price||p.page_price||p.price||0)+'"></div><div><label class="label">ถุง/ลัง</label><input class="pb" type="number" value="'+(p.pieces_per_box||p.box_qty||0)+'"></div></div><div style="margin-top:8px"><label class="label">เปิดขายใน Partner POS</label><select class="ac"><option value="yes">yes</option><option value="no">no</option></select></div>';box.appendChild(d);d.querySelector('.ac').value=p.active||'no';})}
+function renderProductSheet(){var q=($('productSearch').value||'').toLowerCase();var box=$('productButtons');box.innerHTML='';activeProducts().filter(function(p){return !q||(String(p.thai_name||'')+' '+krDisplay(p)).toLowerCase().includes(q)}).forEach(function(p){var b=document.createElement('button');b.className='prodBtn';b.innerHTML='<b>'+escapeHtml(p.thai_name||p.name||'สินค้า')+'</b><span>'+money(p.partner_price||p.page_price||p.price||0)+' · '+escapeHtml(p.pieces_per_box?('ลังละ '+p.pieces_per_box+' ถุง'):'')+'</span>';b.onclick=function(){if(productSheetTarget==='detail'){var o=detailOrder();if(!o||!canEditOrder(o)){toast('ออเดอร์นี้แก้ไขสินค้าไม่ได้');closeSheet();return}if(!Array.isArray(o.items))o.items=[];var ex=o.items.find(function(it){return String(it.option_id)===String(p.option_id)});if(ex)ex.qty++;else o.items.push({option_id:p.option_id,display_product_id:p.display_product_id,qty:1,price:Number(p.partner_price||p.page_price||p.price||0)});markOrderEdited(o,'เพิ่มสินค้า '+(p.thai_name||p.option_id));save('orders',orders);renderDetailOrderItems(o);closeSheet();return}ensureOrder();var ex=currentOrder.items.find(function(it){return String(it.option_id)===String(p.option_id)});if(ex)ex.qty++;else currentOrder.items.push({option_id:p.option_id,display_product_id:p.display_product_id,qty:1,price:Number(p.partner_price||p.page_price||p.price||0)});calcText();renderItems();closeSheet()};box.appendChild(b)});}
+function openSheet(target){productSheetTarget=target||'quick';renderProductSheet();$('productSheet').classList.add('show');$('sheetBackdrop').classList.add('show');setTimeout(function(){$('productSearch').focus()},50)}
+function closeSheet(){$('productSheet').classList.remove('show');$('sheetBackdrop').classList.remove('show');$('productSearch').value=''}
+function openDrawer(){$('drawer').classList.add('show')}function closeDrawer(){$('drawer').classList.remove('show')}
+function escapeHtml(s){return String(s||'').replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})}function escapeAttr(s){return escapeHtml(s).replace(/"/g,'&quot;')}
+function parseTextToFields(t){t=t||'';var amt=(t.match(/([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{4,})\s*(?:원|วอน)?/)||[])[1];var phone=(t.match(/01[016789][-\s]?[0-9]{3,4}[-\s]?[0-9]{4}/)||[])[0];var time=(t.match(/([01]?\d|2[0-3])[:.]([0-5]\d)/)||[]);if(amt&&!$('payAmount').value)$('payAmount').value=amt.replace(/,/g,'');if(phone&&!$('receiverPhone').value)$('receiverPhone').value=phone.replace(/[^0-9]/g,'');if(time&&!$('payTime').value)$('payTime').value=time[1].padStart(2,'0')+':'+time[2];var date=(t.match(/(20[0-9]{2})[-.\/년 ]+(0?[1-9]|1[0-2])[-.\/월 ]+(0?[1-9]|[12][0-9]|3[01])/ )||[]);if(date&&!$('payDate').value)$('payDate').value=date[1]+'-'+String(date[2]).padStart(2,'0')+'-'+String(date[3]).padStart(2,'0');var zip=(t.match(/\b[0-9]{5}\b/)||[])[0];if(zip&&!$('zipcode').value)$('zipcode').value=zip;var lines=t.split(/\n/).map(function(x){return x.trim()}).filter(Boolean);var addr=lines.filter(function(x){return /시|군|구|동|로|길|아파트|호|층/.test(x)}).join(' ');if(addr&&!$('address').value)$('address').value=addr;toast('แยกข้อมูลเบื้องต้นแล้ว')}
+async function runAiOcr(mode){var endpoint=localStorage.getItem(LS+'ocr_endpoint')||'';var key=localStorage.getItem(LS+'ocr_key')||'';if(!endpoint){toast('ยังไม่ได้ตั้งค่า AI OCR API');return}if(!ocrImageData){toast('เลือกรูปก่อน');return}toast('กำลังอ่านรูป...');try{var res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','Authorization':key?'Bearer '+key:''},body:JSON.stringify({mode:mode,image:ocrImageData})});var data=await res.json();applyOcrData(data);toast('อ่านรูปสำเร็จ')}catch(e){toast('AI OCR ใช้ไม่ได้: '+e.message)}}
+function applyOcrData(d){if(!d)return;if(d.text)$('ocrText').value=d.text;if(d.platform)$('channel').value=d.platform;if(d.customer_name)$('customerName').value=d.customer_name;if(d.receiver_name)$('receiverName').value=d.receiver_name;if(d.phone)$('receiverPhone').value=String(d.phone).replace(/[^0-9]/g,'');if(d.address)$('address').value=d.address;if(d.zipcode)$('zipcode').value=d.zipcode;if(d.shipping_memo)$('shippingMemo').value=d.shipping_memo;if(d.payment_amount)$('payAmount').value=d.payment_amount;if(d.payment_date)$('payDate').value=d.payment_date;if(d.payment_time)$('payTime').value=d.payment_time;if(d.payment_name)$('payerName').value=d.payment_name;if(d.payer_name)$('payerName').value=d.payer_name;}
+function pickField(x,names,matcher){
+  for(var i=0;i<names.length;i++){if(x[names[i]]!=null&&x[names[i]]!=='')return x[names[i]]}
+  var ks=Object.keys(x||{});
+  for(var j=0;j<ks.length;j++){if(matcher&&matcher(ks[j])){var v=x[ks[j]];if(v!=null&&v!=='')return v}}
+  return '';
+}
+function normalizeProductRow(x,i){
+  var oid=pickField(x,['option_id','id','optionid','optionId','optionID','옵션ID'],function(k){var ss=String(k).toLowerCase();return (ss.indexOf('option')>=0&&ss.indexOf('id')>=0)||/옵션.*id/i.test(k)});
+  var did=pickField(x,['display_product_id','displayproductid','displayProductId','노출상품ID'],function(k){var ss=String(k).toLowerCase();return (ss.indexOf('display')>=0&&ss.indexOf('product')>=0&&ss.indexOf('id')>=0)||/노출.*상품.*id/i.test(k)});
+  var pickKo=pickField(x,['pick_name','partner_pick_name','kr_name','product_name_kr','상품명','제품명','product_name','name'],function(k){var ss=String(k).toLowerCase();return ss==='pick_name'||ss.indexOf('product_name')>=0||ss.indexOf('상품명')>=0||ss.indexOf('제품명')>=0});
+  var pickTh=pickField(x,['pick_name_th','partner_pick_name_th','thai_name','product_name_th','pos_name_th','name_th'],function(k){var ss=String(k).toLowerCase();return ss.indexOf('pick_name_th')>=0||ss.indexOf('thai')>=0||ss.indexOf('_th')>=0});
+  var price=pickField(x,['partner_price','wholesale_price','page_price','pos_price','price','sale_price'],function(k){var ss=String(k).toLowerCase();return ss.indexOf('price')>=0||ss.indexOf('가격')>=0});
+  return Object.assign({},x,{option_id:String(oid||'').trim(),display_product_id:String(did||'').trim(),pick_name:String(pickKo||'').trim(),kr_name:String(pickKo||'').trim(),thai_name:String(pickTh||pickKo||('สินค้า '+(i+1))).trim(),partner_price:Number(String(price||'0').replace(/[^0-9.]/g,''))||0,page_price:Number(String(price||'0').replace(/[^0-9.]/g,''))||0,pieces_per_box:Number(x.pieces_per_box||x.box_qty||0)||0,active:'no'});
+}
+
+function mergeProductAliases(base, settings){
+  var map={};(settings||[]).forEach(function(a){if(a&&a.option_id!=null)map[String(a.option_id)]=a});
+  return (base||[]).map(function(p){var a=map[String(p.option_id)]||{};return Object.assign({},p,{thai_name:a.pick_name_th||a.partner_pick_name_th||a.thai_name||p.thai_name,partner_price:(a.partner_price!=null&&a.partner_price!==''?Number(a.partner_price):p.partner_price),page_price:(a.partner_price!=null&&a.partner_price!==''?Number(a.partner_price):p.page_price),pieces_per_box:Number(a.pieces_per_box||p.pieces_per_box||0)||0,active:(a.enabled===false||a.active==='no'||a.partner_enabled===false)?'no':(a.enabled===true||a.active==='yes'||a.partner_enabled===true?'yes':(a.active||p.active||'no')),setting_id:a.id||p.setting_id})});
+}
+async function fetchProductAliases(sb){
+  try{var a=await sb.from('partner_product_settings').select('*').limit(5000);if(a.error)throw a.error;return a.data||[]}catch(e){console.warn('partner_product_settings load failed',e);return []}
+}
+async function saveProductAliasesToSupabase(){
+  var sb=sbClient();if(!sb){toast('ยังไม่ได้เชื่อม Supabase');return false}
+  try{
+    var rows=products.map(function(p){return {option_id:String(p.option_id||''),display_product_id:String(p.display_product_id||''),pick_name:p.pick_name||p.kr_name||krDisplay(p),pick_name_th:p.thai_name||'',partner_price:Number(p.partner_price||p.page_price||0),pieces_per_box:Number(p.pieces_per_box||0),enabled:(p.active||'no')==='yes',updated_at:new Date().toISOString()}}).filter(function(r){return r.option_id});
+    if(rows.length){var ins=await sb.from('partner_product_settings').upsert(rows,{onConflict:'option_id'});if(ins.error)throw ins.error;}
+    toast('บันทึกสินค้า Partner ลง Supabase แล้ว');
+    return true;
+  }catch(e){toast('บันทึกสินค้าเข้า Supabase ไม่ได้: '+(e.message||e));return false}
+}
+
+async function loadFromSupabase(){
+  var url=$('supabaseUrl').value.trim(), key=$('supabaseKey').value.trim();
+  if(!url||!key){toast('ใส่ Supabase URL/key ก่อน');return}
+  localStorage.setItem(LS+'supabase_url',url);localStorage.setItem(LS+'supabase_key',key);
+  $('loadStatus').textContent='กำลังโหลด...';
+  try{
+    var sb=window.supabase.createClient(url,key);
+    var r=await sb.from('product_options').select('*').limit(1000);
+    if(r.error)throw r.error;
+    products=(r.data||[]).map(normalizeProductRow);
+    var aliases=await fetchProductAliases(sb);
+    products=mergeProductAliases(products, aliases);
+    save('products',products);
+    renderProductEdits();
+    renderProductSheet();
+    var missOpt=products.filter(function(p){return !p.option_id}).length;
+    var missDisp=products.filter(function(p){return !p.display_product_id}).length;
+    var msg='โหลดสำเร็จ '+products.length+' รายการ';
+    if(missOpt||missDisp){msg+=' | ขาด option_id '+missOpt+' / display_product_id '+missDisp+' รายการ';}
+    $('loadStatus').textContent=msg;
+    toast('โหลดสินค้าแล้ว');
+  }catch(e){$('loadStatus').textContent='โหลดไม่ได้: '+e.message;toast('โหลดไม่ได้')}
+}
+
+var SETUP_SQL = `-- KHOKAI Partner POS V15.5 Database Migration
+-- Run this once in Supabase SQL Editor. Safe to run repeatedly.
+-- Goal: fix old table versions without deleting data.
+
+begin;
+
+-- 1) Helper: safely convert old text payload to JSONB without crashing
+create or replace function public.khokai_safe_jsonb(input_text text)
+returns jsonb
+language plpgsql
+as $$
+begin
+  if input_text is null or btrim(input_text) = '' then
+    return '{}'::jsonb;
+  end if;
+  return input_text::jsonb;
+exception when others then
+  return jsonb_build_object('legacy_payload_text', input_text);
+end;
+$$;
+
+-- 2) Main orders table
+create table if not exists public.khokai_partner_orders (
+  id text primary key,
+  order_no text,
+  seller text,
+  status text default 'TEMP',
+  total numeric default 0,
+  payload jsonb not null default '{}'::jsonb,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+-- Old versions may have id as uuid. Convert to text so the app can save id like o_172...
+alter table public.khokai_partner_orders alter column id drop default;
+alter table public.khokai_partner_orders alter column id type text using id::text;
+
+-- Add all columns used now or likely next. Existing data is preserved.
+alter table public.khokai_partner_orders add column if not exists order_no text;
+alter table public.khokai_partner_orders add column if not exists seller text;
+alter table public.khokai_partner_orders add column if not exists status text default 'TEMP';
+alter table public.khokai_partner_orders add column if not exists total numeric default 0;
+alter table public.khokai_partner_orders add column if not exists payload jsonb default '{}'::jsonb;
+alter table public.khokai_partner_orders add column if not exists created_at timestamptz default now();
+alter table public.khokai_partner_orders add column if not exists updated_at timestamptz default now();
+
+-- Optional flat columns for searching/reporting later. App still keeps full object in payload.
+alter table public.khokai_partner_orders add column if not exists channel text;
+alter table public.khokai_partner_orders add column if not exists receiver_name text;
+alter table public.khokai_partner_orders add column if not exists receiver_phone text;
+alter table public.khokai_partner_orders add column if not exists address text;
+alter table public.khokai_partner_orders add column if not exists shipping_memo text;
+alter table public.khokai_partner_orders add column if not exists payment_amount numeric;
+alter table public.khokai_partner_orders add column if not exists payment_date date;
+alter table public.khokai_partner_orders add column if not exists payment_time text;
+alter table public.khokai_partner_orders add column if not exists payer_name text;
+alter table public.khokai_partner_orders add column if not exists bank_label text;
+alter table public.khokai_partner_orders add column if not exists tracking_url text;
+alter table public.khokai_partner_orders add column if not exists tracking_no text;
+alter table public.khokai_partner_orders add column if not exists exported_at timestamptz;
+alter table public.khokai_partner_orders add column if not exists paid_at timestamptz;
+alter table public.khokai_partner_orders add column if not exists cancelled_at timestamptz;
+alter table public.khokai_partner_orders add column if not exists cancel_reason text;
+
+-- If payload existed as text/json/etc in old schema, normalize it to jsonb.
+do $$
+declare
+  payload_type text;
+begin
+  select data_type into payload_type
+  from information_schema.columns
+  where table_schema='public' and table_name='khokai_partner_orders' and column_name='payload';
+
+  if payload_type is not null and payload_type <> 'jsonb' then
+    execute 'alter table public.khokai_partner_orders alter column payload type jsonb using public.khokai_safe_jsonb(payload::text)';
+  end if;
+end $$;
+
+alter table public.khokai_partner_orders alter column payload set default '{}'::jsonb;
+alter table public.khokai_partner_orders alter column payload set not null;
+alter table public.khokai_partner_orders alter column status set default 'TEMP';
+alter table public.khokai_partner_orders alter column total set default 0;
+alter table public.khokai_partner_orders alter column created_at set default now();
+alter table public.khokai_partner_orders alter column updated_at set default now();
+
+update public.khokai_partner_orders
+set order_no = coalesce(order_no, id::text),
+    status = coalesce(status, 'TEMP'),
+    total = coalesce(total, 0),
+    payload = coalesce(payload, '{}'::jsonb),
+    created_at = coalesce(created_at, now()),
+    updated_at = coalesce(updated_at, now())
+where order_no is null
+   or status is null
+   or total is null
+   or payload is null
+   or created_at is null
+   or updated_at is null;
+
+create index if not exists khokai_partner_orders_order_no_idx on public.khokai_partner_orders(order_no);
+create index if not exists khokai_partner_orders_status_idx on public.khokai_partner_orders(status);
+create index if not exists khokai_partner_orders_seller_idx on public.khokai_partner_orders(seller);
+create index if not exists khokai_partner_orders_created_at_idx on public.khokai_partner_orders(created_at desc);
+create index if not exists khokai_partner_orders_payload_idx on public.khokai_partner_orders using gin(payload);
+
+-- 3) Product alias table: Thai name / page price / Korean name reference per option_id
+create table if not exists public.khokai_pos_product_aliases (
+  option_id text primary key,
+  display_product_id text,
+  option_name_kr text,
+  thai_name text,
+  page_price numeric default 0,
+  active text default 'yes',
+  payload jsonb not null default '{}'::jsonb,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+alter table public.khokai_pos_product_aliases add column if not exists display_product_id text;
+alter table public.khokai_pos_product_aliases add column if not exists option_name_kr text;
+alter table public.khokai_pos_product_aliases add column if not exists thai_name text;
+alter table public.khokai_pos_product_aliases add column if not exists page_price numeric default 0;
+alter table public.khokai_pos_product_aliases add column if not exists active text default 'yes';
+alter table public.khokai_pos_product_aliases add column if not exists payload jsonb not null default '{}'::jsonb;
+alter table public.khokai_pos_product_aliases add column if not exists created_at timestamptz default now();
+alter table public.khokai_pos_product_aliases add column if not exists updated_at timestamptz default now();
+create index if not exists khokai_pos_product_aliases_display_idx on public.khokai_pos_product_aliases(display_product_id);
+create index if not exists khokai_pos_product_aliases_option_idx on public.khokai_pos_product_aliases(option_id);
+
+-- 4) Bank accounts table for Settings / selectable bank account
+create table if not exists public.khokai_pos_bank_accounts (
+  id bigserial primary key,
+  label text not null,
+  bank_name text,
+  account_number text,
+  account_holder text,
+  message_text text,
+  is_default boolean default false,
+  active boolean default true,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+alter table public.khokai_pos_bank_accounts add column if not exists label text;
+alter table public.khokai_pos_bank_accounts add column if not exists bank_name text;
+alter table public.khokai_pos_bank_accounts add column if not exists account_number text;
+alter table public.khokai_pos_bank_accounts add column if not exists account_holder text;
+alter table public.khokai_pos_bank_accounts add column if not exists message_text text;
+alter table public.khokai_pos_bank_accounts add column if not exists is_default boolean default false;
+alter table public.khokai_pos_bank_accounts add column if not exists active boolean default true;
+alter table public.khokai_pos_bank_accounts add column if not exists created_at timestamptz default now();
+alter table public.khokai_pos_bank_accounts add column if not exists updated_at timestamptz default now();
+
+insert into public.khokai_pos_bank_accounts (label, bank_name, account_number, account_holder, message_text, is_default, active)
+select 'บริษัท / Shinhan', '신한은행 Shinhan Bank', '140013678642', '메콩푸드 주식회사', E'🏦 신한은행 Shinhan Bank\n140013678642\n메콩푸드 주식회사', true, true
+where not exists (select 1 from public.khokai_pos_bank_accounts);
+
+-- Ensure only one default bank if multiple rows accidentally marked default.
+with ranked as (
+  select id, row_number() over(order by is_default desc, id asc) as rn
+  from public.khokai_pos_bank_accounts
+  where active = true
+)
+update public.khokai_pos_bank_accounts b
+set is_default = (r.rn = 1)
+from ranked r
+where b.id = r.id;
+
+-- 5) Message templates / extra text
+create table if not exists public.khokai_pos_message_templates (
+  id bigserial primary key,
+  label text,
+  message_text text not null,
+  active boolean default true,
+  sort_order int default 100,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+insert into public.khokai_pos_message_templates (label, message_text, active, sort_order)
+select 'default slip', 'โอนแล้ว รบกวนแจ้งสลิป เพื่อทำการจัดส่งสินค้า', true, 10
+where not exists (select 1 from public.khokai_pos_message_templates);
+
+-- 6) POS users/settings lightweight tables for future admin control
+create table if not exists public.khokai_tracking (
+  id uuid primary key default gen_random_uuid(),
+  order_no text unique not null,
+  carrier text,
+  tracking_no text,
+  tracking_url text,
+  status text default 'pending',
+  shipped_at timestamptz,
+  payload jsonb default '{}'::jsonb,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table if not exists public.khokai_pos_users (
+  username text primary key,
+  password text default '1234',
+  display_name text,
+  role text default 'seller',
+  seller_code text default '00',
+  gender text default 'male',
+  tone text default 'ครับ',
+  message_style text default 'ครับ',
+  active boolean default true,
+  last_login timestamptz,
+  payload jsonb not null default '{}'::jsonb,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+alter table public.khokai_pos_users add column if not exists password text default '1234';
+alter table public.khokai_pos_users add column if not exists display_name text;
+alter table public.khokai_pos_users add column if not exists role text default 'seller';
+alter table public.khokai_pos_users add column if not exists seller_code text default '00';
+alter table public.khokai_pos_users add column if not exists gender text default 'male';
+alter table public.khokai_pos_users add column if not exists tone text default 'ครับ';
+alter table public.khokai_pos_users add column if not exists message_style text default 'ครับ';
+alter table public.khokai_pos_users add column if not exists active boolean default true;
+alter table public.khokai_pos_users add column if not exists last_login timestamptz;
+alter table public.khokai_pos_users add column if not exists payload jsonb not null default '{}'::jsonb;
+alter table public.khokai_pos_users add column if not exists created_at timestamptz default now();
+alter table public.khokai_pos_users add column if not exists updated_at timestamptz default now();
+
+insert into public.khokai_pos_users
+(username, password, display_name, role, seller_code, gender, tone, message_style, active)
+values ('admin', '1234', 'Administrator', 'admin', '01', 'male', 'ครับ', 'ครับ', true)
+on conflict (username) do update set
+  password = excluded.password,
+  display_name = coalesce(public.khokai_pos_users.display_name, excluded.display_name),
+  role = 'admin',
+  seller_code = coalesce(public.khokai_pos_users.seller_code, excluded.seller_code),
+  gender = coalesce(public.khokai_pos_users.gender, excluded.gender),
+  tone = coalesce(public.khokai_pos_users.tone, excluded.tone),
+  message_style = coalesce(public.khokai_pos_users.message_style, excluded.message_style),
+  active = true,
+  updated_at = now();
+
+create table if not exists public.khokai_pos_settings (
+  key text primary key,
+  value jsonb not null default '{}'::jsonb,
+  updated_at timestamptz default now()
+);
+
+-- 7) Permission for simple Mini App with anon key. Keep simple for now.
+alter table public.khokai_partner_orders disable row level security;
+alter table public.khokai_pos_product_aliases disable row level security;
+alter table public.khokai_pos_bank_accounts disable row level security;
+alter table public.khokai_pos_message_templates disable row level security;
+alter table public.khokai_pos_users disable row level security;
+alter table public.khokai_pos_settings disable row level security;
+
+grant usage on schema public to anon, authenticated;
+grant select, insert, update, delete on public.khokai_partner_orders to anon, authenticated;
+grant select, insert, update, delete on public.khokai_pos_product_aliases to anon, authenticated;
+grant select, insert, update, delete on public.khokai_pos_bank_accounts to anon, authenticated;
+grant select, insert, update, delete on public.khokai_pos_message_templates to anon, authenticated;
+grant select, insert, update, delete on public.khokai_tracking to anon, authenticated;
+grant select, insert, update, delete on public.khokai_pos_users to anon, authenticated;
+grant select, insert, update, delete on public.khokai_pos_settings to anon, authenticated;
+grant usage, select on all sequences in schema public to anon, authenticated;
+
+insert into public.khokai_pos_users
+(username, password, display_name, role, seller_code, gender, tone, message_style, active)
+values ('seller1', '1234', 'Seller 1', 'seller', '11', 'female', 'ค่ะ', 'ค่ะ', true)
+on conflict (username) do nothing;
+
+-- 8) Tell PostgREST/Supabase API to reload schema cache
+
+-- Partner POS product setting table
+create table if not exists public.partner_product_settings (
+  option_id text primary key,
+  display_product_id text,
+  pick_name text,
+  pick_name_th text,
+  partner_price numeric default 0,
+  pieces_per_box numeric default 0,
+  enabled boolean default false,
+  active text generated always as (case when enabled then 'yes' else 'no' end) stored,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+alter table public.partner_product_settings disable row level security;
+grant select, insert, update, delete on public.partner_product_settings to anon, authenticated;
+
+-- Partner master table
+create table if not exists public.partner_master (
+  id bigserial primary key,
+  name text unique not null,
+  channel text,
+  contact text,
+  phone text,
+  kakao text,
+  address text,
+  active boolean default true,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+alter table public.partner_master disable row level security;
+grant select, insert, update, delete on public.partner_master to anon, authenticated;
+
+notify pgrst, 'reload schema';
+
+commit;
+`;
+
+function updateSupabaseStatus(ok,msg){
+  var el=$('supabaseStatus'); if(!el)return;
+  el.className=(ok?'setupBox setupOk mini':'setupBox mini');
+  el.innerHTML=(ok?'🟢 เชื่อมต่อ Supabase แล้ว':'🟠 Supabase ยังไม่พร้อม')+'<br>'+escapeHtml(msg||'');
+}
+async function testSupabaseConnection(){
+  var urlInput=$('supabaseUrl'), keyInput=$('supabaseKey');
+  var url=(urlInput&&urlInput.value.trim())||DEFAULT_SUPABASE_URL;
+  var key=(keyInput&&keyInput.value.trim())||DEFAULT_SUPABASE_ANON_KEY;
+  localStorage.setItem(LS+'supabase_url',url);
+  localStorage.setItem(LS+'supabase_key',key);
+  var sb=sbClient();
+  if(!sb){remoteReady=false;remoteError='Supabase client ยังไม่พร้อม';updateSupabaseStatus(false,remoteError);return false}
+  try{
+    var r=await sb.from(ORDER_TABLE).select('id').limit(1);
+    if(r.error)throw r.error;
+    remoteReady=true;remoteError='';updateSupabaseStatus(true,'เชื่อมต่ออัตโนมัติแล้ว / ไม่ต้องกดเชื่อมต่อเอง');return true;
+  }catch(e){
+    remoteReady=false;remoteError=e.message||String(e);updateSupabaseStatus(false,'ติดต่อได้แต่ตาราง/สิทธิ์ยังไม่พร้อม: '+remoteError);return false;
+  }
+}
+async function autoConnectSupabase(){
+  if(!localStorage.getItem(LS+'supabase_url'))localStorage.setItem(LS+'supabase_url',DEFAULT_SUPABASE_URL);
+  if(!localStorage.getItem(LS+'supabase_key'))localStorage.setItem(LS+'supabase_key',DEFAULT_SUPABASE_ANON_KEY);
+  if($('supabaseUrl'))$('supabaseUrl').value=localStorage.getItem(LS+'supabase_url')||DEFAULT_SUPABASE_URL;
+  if($('supabaseKey'))$('supabaseKey').value=localStorage.getItem(LS+'supabase_key')||DEFAULT_SUPABASE_ANON_KEY;
+  await testSupabaseConnection();
+}
+
+function isAdmin(){return currentUser&&(currentUser.role==='admin'||currentUser.username==='admin')}
+function applyRoleUi(){
+  document.querySelectorAll('[data-view="settings"]').forEach(function(b){b.classList.toggle('hide',!isAdmin())});
+}
+function sbClient(){
+  var url=localStorage.getItem(LS+'supabase_url')||DEFAULT_SUPABASE_URL;
+  var key=localStorage.getItem(LS+'supabase_key')||DEFAULT_SUPABASE_ANON_KEY;
+  if(!url||!key||!window.supabase)return null;
+  return window.supabase.createClient(url,key);
+}
+function orderRow(o){
+  return {id:o.id,order_no:o.order_no,seller:o.seller||'',status:o.status||'TEMP',total:orderTotal(o),payload:o,channel:o.channel||'',receiver_name:o.receiver_name||'',receiver_phone:o.receiver_phone||'',address:o.address||'',shipping_memo:o.shipping_memo||'',payment_amount:o.payment_amount||null,payment_date:o.payment_date||null,payment_time:o.payment_time||'',payer_name:o.payer_name||'',tracking_url:o.tracking_link||'',created_at:o.created_at||new Date().toISOString(),updated_at:new Date().toISOString()};
+}
+async function syncOrderToSupabase(o){
+  var sb=sbClient(); if(!sb){remoteReady=false;remoteError='no key';return false}
+  try{
+    var r=await sb.from(ORDER_TABLE).upsert(orderRow(o),{onConflict:'id'});
+    if(r.error)throw r.error;
+    remoteReady=true;remoteError='';return true;
+  }catch(e){remoteReady=false;remoteError=e.message||String(e);console.warn('Supabase order sync failed',e);return false}
+}
+async function fetchOrdersFromSupabase(){
+  var sb=sbClient(); if(!sb){remoteReady=false;return orders}
+  try{
+    var r=await sb.from(ORDER_TABLE).select('*').order('created_at',{ascending:false}).limit(500);
+    if(r.error)throw r.error;
+    var remote=(r.data||[]).map(function(x){var o=x.payload||x;if(!o.payment_date&&x.payment_date)o.payment_date=x.payment_date;if(!o.payment_time&&x.payment_time)o.payment_time=x.payment_time;if(!o.payer_name&&x.payer_name)o.payer_name=x.payer_name;return o});
+    if(remote.length){orders=remote;save('orders',orders)}
+    await syncTrackingFromSupabase();
+    remoteReady=true;remoteError='';return orders;
+  }catch(e){remoteReady=false;remoteError=e.message||String(e);console.warn('Supabase order fetch failed',e);return orders}
+}
+
+
+function normalizeUserRow(r){return {id:r.id||'',username:r.username||'',password:r.password||'',display_name:r.display_name||r.full_name||'',sellerCode:r.seller_code||r.sellerCode||'',gender:r.gender||'male',tone:r.tone||r.message_style||'ครับ',message_style:r.message_style||r.tone||'ครับ',role:r.role||'seller',active:r.active!==false,last_login:r.last_login||''}}
+function collectUsersFromForm(){var arr=[];document.querySelectorAll('#userList .userRow').forEach(function(d){var username=d.querySelector('.un').value.trim();if(!username)return;arr.push({username:username,password:d.querySelector('.pw').value,display_name:d.querySelector('.dn').value.trim(),sellerCode:d.querySelector('.sc').value.trim(),gender:d.querySelector('.ge')?d.querySelector('.ge').value:'male',tone:d.querySelector('.to').value,message_style:d.querySelector('.to').value,role:d.querySelector('.ro').value,active:d.querySelector('.ac').value==='true'});});return arr}
+async function fetchUsersFromSupabase(){
+  var sb=sbClient(); if(!sb){toast('ยังเชื่อม Supabase ไม่ได้');return false}
+  try{
+    var r=await sb.from('khokai_pos_users').select('*').order('username',{ascending:true});
+    if(r.error)throw r.error;
+    users=(r.data||[]).map(normalizeUserRow);
+    save('users',users);
+    return true;
+  }catch(e){toast('โหลด Users ไม่ได้: '+(e.message||e));return false}
+}
+async function saveUsersToSupabase(){
+  var sb=sbClient(); if(!sb){toast('ยังเชื่อม Supabase ไม่ได้');return false}
+  var arr=collectUsersFromForm();
+  if(!arr.length){toast('ยังไม่มี User ให้บันทึก');return false}
+  var rows=arr.map(function(u){return {username:u.username,password:u.password||'1234',display_name:u.display_name||u.username,seller_code:u.sellerCode||'00',gender:u.gender||'male',tone:u.tone||'',message_style:u.message_style||u.tone||'',role:u.role||'seller',active:u.active,updated_at:new Date().toISOString()}});
+  try{
+    var r=await sb.from('khokai_pos_users').upsert(rows,{onConflict:'username'}).select();
+    if(r.error)throw r.error;
+    users=(r.data||rows).map(normalizeUserRow);
+    save('users',users);
+    renderUsers();
+    toast('บันทึก Users ลง Supabase แล้ว');
+    return true;
+  }catch(e){toast('บันทึก Users ไม่ได้: '+(e.message||e));return false}
+}
+
+
+async function loginFromSupabase(username,password){
+  var sb=sbClient(); if(!sb)return null;
+  try{
+    var r=await sb.from('khokai_pos_users').select('*').eq('username',username).eq('password',password).eq('active',true).limit(1).maybeSingle();
+    if(r.error)throw r.error;
+    if(!r.data)return null;
+    await sb.from('khokai_pos_users').update({last_login:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('username',username);return {username:r.data.username,password:r.data.password||'',display_name:r.data.display_name||r.data.full_name||r.data.username,sellerCode:r.data.seller_code||r.data.sellerCode||'00',gender:r.data.gender||'male',tone:r.data.tone||r.data.message_style||'ครับ',role:r.data.role||'seller'};
+  }catch(e){console.warn('Supabase user login failed',e);return null}
+}
+async function syncTrackingFromSupabase(){
+  var sb=sbClient(); if(!sb||!orders.length)return false;
+  try{
+    var orderNos=orders.map(function(o){return o.order_no}).filter(Boolean);
+    if(!orderNos.length)return true;
+    var r=await sb.from(TRACKING_TABLE).select('*').in('order_no',orderNos);
+    if(r.error)throw r.error;
+    var map={};(r.data||[]).forEach(function(t){map[String(t.order_no)]=t});
+    var changed=false;
+    orders.forEach(function(o){var t=map[String(o.order_no)];if(!t)return;var no=t.tracking_no||t.invoice_no||t.waybill_no||'';var url=t.tracking_url||t.url||'';if(!url && t.carrier&&no)url=String(t.carrier_url||''); if(no){o.tracking_no=no;o.carrier=t.carrier||o.carrier||'';o.tracking_url=url||o.tracking_link||makeTracking(localStorage.getItem(LS+'tracking_base')||'',o.order_no); if(o.status!=='CANCELLED')o.status='SHIPPED'; changed=true;}});
+    if(changed)save('orders',orders);
+    return true;
+  }catch(e){console.warn('tracking sync failed',e);return false}
+}
+function paidOrdersForExport(){return orders.filter(function(o){return (o.status||'')==='PAID'})}
+function orderRowsForOms(o){
+  var rows=[];
+  (o.items||[]).forEach(function(it){
+    var p=productByOpt(it.option_id);
+    var addr=(o.address||'').trim(); if(o.shipping_memo)addr += ' ('+o.shipping_memo+')';
+    rows.push([
+      o.channel||'Partner POS',
+      o.order_no||'',
+      o.order_no||'',
+      o.receiver_name||o.customer_name||'',
+      o.receiver_phone||'',
+      o.zipcode||'',
+      addr,
+      String(it.display_product_id||p.display_product_id||''),
+      String(it.option_id||''),
+      p.option_name||p.option_name_kr||p.kr_name||'',
+      krDisplay(p)||p.thai_name||'',
+      Number(it.qty)||0,
+      p.batch_name||p.pick_name||p.thai_name||''
+    ]);
+  });
+  return rows;
+}
+async function exportPaidOrdersOMS(){
+  await fetchOrdersFromSupabase();
+  var paid=paidOrdersForExport();
+  if(!paid.length){toast('ยังไม่มีออเดอร์สถานะ PAID สำหรับดาวน์โหลด');return}
+  var wb=new ExcelJS.Workbook();
+  var ws=wb.addWorksheet('Orders');
+  var headers=['플랫폼','주문번호','묶음배송번호','수취인이름','수취인전화번호','우편번호','수취인주소','노출상품ID','옵션ID','등록옵션명','노출상품명(옵션명)','수량','BatchName(สรุปหยิบ)'];
+  ws.addRow(headers);
+  paid.forEach(function(o){orderRowsForOms(o).forEach(function(r){ws.addRow(r)})});
+  ws.getRow(1).font={bold:true};
+  ws.columns=[14,16,16,14,16,10,36,16,16,18,40,8,20].map(function(w){return {width:w}});
+  ws.eachRow(function(row){row.eachCell(function(cell){cell.alignment={vertical:'middle',wrapText:true};cell.border={top:{style:'thin'},left:{style:'thin'},bottom:{style:'thin'},right:{style:'thin'}}})});
+  var buf=await wb.xlsx.writeBuffer();
+  var blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='KHOKAI_OMS_V17_3_'+todayYYMMDD()+'.xlsx';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1000);
+  toast('ดาวน์โหลดไฟล์ OMS แล้ว: '+paid.length+' ออเดอร์');
+}
+
+// events
+$('loginBtn').onclick=async function(){
+  var username=$('loginUser').value.trim(), password=$('loginPass').value;
+  if(!username||!password){toast('กรอก Username / Password');return}
+  if(!remoteReady){await autoConnectSupabase()}
+  if(!remoteReady){toast('ยังเชื่อม Supabase ไม่ได้: '+(remoteError||''));return}
+  var u=await loginFromSupabase(username,password);
+  if(!u){toast('ไม่พบ User นี้ใน Supabase หรือรหัสไม่ถูกต้อง');return}
+  currentUser=u;$('loginScreen').classList.add('hide');$('app').classList.remove('hide');$('bottomnav').classList.remove('hide');$('fab').classList.remove('hide');$('who').textContent=u.username;$('sellerCodeShow').textContent=u.sellerCode||'';applyRoleUi();await fetchOrdersFromSupabase();ensureOrder();showView('quick')
+};
+$('menuBtn').onclick=openDrawer;$('closeMenu').onclick=closeDrawer;$('drawer').addEventListener('click',function(e){if(e.target.id==='drawer')closeDrawer()});document.querySelectorAll('[data-view]').forEach(function(b){b.onclick=function(){showView(b.dataset.view)}});document.querySelectorAll('[data-filter]').forEach(function(b){b.onclick=function(){historyFilter=b.dataset.filter;document.querySelectorAll('[data-filter]').forEach(function(x){x.classList.toggle('active',x===b)});renderHistory()}});$('searchBtn').onclick=function(){showView('history');$('searchBox').classList.toggle('hide');$('historySearch').focus()};$('fab').onclick=openSheet;$('addProductBtn').onclick=openSheet;$('closeSheet').onclick=closeSheet;$('sheetBackdrop').onclick=closeSheet;$('productSearch').oninput=renderProductSheet;
+$('newTempBtn').onclick=async function(){await fetchOrdersFromSupabase();currentOrder={id:'o_'+Date.now(),order_no:newOrderNo(),status:'TEMP',seller:currentUser.username,sellerCode:currentUser.sellerCode,items:[],shipping:5000,discount:0,extraIndex:0,bankIndex:0,created_at:new Date().toISOString()};renderQuick();await saveCurrentTemp()};$('saveTempBtn').onclick=saveCurrentTemp;$('copyBtn').onclick=async function(){await saveCurrentTemp();navigator.clipboard&&navigator.clipboard.writeText(calcText()).then(function(){toast('คัดลอกแล้ว')})};['shipping','discount','extraSelect','bankSelect'].forEach(function(id){$(id).addEventListener('input',function(){calcText();autosaveDraft()});$(id).addEventListener('change',function(){calcText();autosaveDraft()})});$('refreshHistory').onclick=renderHistory;$('exportOmsBtn').onclick=exportPaidOrdersOMS;$('historySearch').oninput=renderHistory;$('backHistory').onclick=function(){showView('history')};$('detailAddProduct').onclick=function(){openSheet('detail')};$('saveDetailItems').onclick=async function(){var o=detailOrder();if(!o)return;if(!canEditOrder(o)){toast('ออเดอร์นี้แก้ไขไม่ได้');return}saveDetailAmounts();o=detailOrder();await syncOrderToSupabase(o);fillDetail(o);toast(remoteReady?'บันทึกการแก้ไขลง Supabase แล้ว':'บันทึกในเครื่องแล้ว / Supabase: '+(remoteError||'ยังไม่พร้อม'))};['detailShipping','detailDiscount'].forEach(function(id){$(id).addEventListener('input',saveDetailAmounts);$(id).addEventListener('change',saveDetailAmounts)});
+$('completeOrder').onclick=async function(){var o=collectDetail();if(!o)return;if((o.items||[]).length===0){toast('ยังไม่มีสินค้าในออเดอร์');return}if(!o.payment_amount){if(!confirm('ยังไม่ได้กรอกยอดโอน ต้องการบันทึกเป็น PAID ไหม?'))return}o.status='PAID';o.paid_at=new Date().toISOString();save('orders',orders);await syncOrderToSupabase(o);fillDetail(o);toast(remoteReady?'บันทึกเป็น PAID ลง Supabase แล้ว':'บันทึกในเครื่องแล้ว / Supabase: '+(remoteError||'ยังไม่พร้อม'))};$('copyClose').onclick=async function(){var o=collectDetail();if(!o)return;save('orders',orders);await syncOrderToSupabase(o);navigator.clipboard&&navigator.clipboard.writeText(closeMessage(o)).then(function(){toast('คัดลอกสรุปปิดแล้ว')})};$('cancelOrderBtn').onclick=function(){cancelOrder(editingId);showView('history')};$('trackingBaseDetail').oninput=function(){var o=orders.find(function(x){return x.id===editingId});$('trackingLink').value=makeTracking(this.value,o?o.order_no:'')};$('addrApi').onclick=function(){if(window.daum&&daum.Postcode){new daum.Postcode({oncomplete:function(data){$('zipcode').value=data.zonecode;$('address').value=data.roadAddress||data.jibunAddress}}).open()}else toast('Daum Postcode ยังโหลดไม่สำเร็จ')};
+$('ocrImage').onchange=function(){var f=this.files&&this.files[0];if(!f)return;var r=new FileReader();r.onload=function(){ocrImageData=r.result;$('ocrPreview').src=r.result;$('ocrPreview').classList.remove('hide')};r.readAsDataURL(f)};$('parseOcr').onclick=function(){parseTextToFields($('ocrText').value)};$('ocrAuto').onclick=function(){runAiOcr('auto')};$('ocrSlip').onclick=function(){runAiOcr('slip')};$('ocrAddress').onclick=function(){runAiOcr('address')};
+$('saveSupabase').onclick=async function(){localStorage.setItem(LS+'supabase_url',$('supabaseUrl').value.trim());localStorage.setItem(LS+'supabase_key',$('supabaseKey').value.trim());await testSupabaseConnection();await fetchOrdersFromSupabase();toast('บันทึก Supabase แล้ว')};$('testSupabase').onclick=testSupabaseConnection;$('copySql').onclick=function(){if($('sqlBox'))$('sqlBox').classList.toggle('hide');navigator.clipboard&&navigator.clipboard.writeText(SETUP_SQL).then(function(){toast('คัดลอก SQL แล้ว')})};$('loadProducts').onclick=loadFromSupabase;$('saveProducts').onclick=async function(){document.querySelectorAll('#productEditList .prodEdit').forEach(function(d,i){products[i].thai_name=d.querySelector('.tn').value.trim();products[i].partner_price=Number(d.querySelector('.pp').value)||0;products[i].page_price=products[i].partner_price;products[i].pieces_per_box=Number(d.querySelector('.pb').value)||0;products[i].active=d.querySelector('.ac').value});save('products',products);await saveProductAliasesToSupabase();renderProductSheet();toast('บันทึกสินค้าแล้ว')};$('saveExtras').onclick=function(){extras=$('extraMessages').value.split(/\n/).map(function(x){return x.trim()}).filter(Boolean);save('extras',extras);renderExtras();calcText();toast('บันทึกข้อความเสริมแล้ว')};$('saveBanks').onclick=function(){banks=parseBanks($('bankAccounts').value);if(!banks.length)banks=defaultBanks;save('banks',banks);renderBankSelect();calcText();toast('บันทึกบัญชีธนาคารแล้ว')};$('addPartner').onclick=function(){partners.push({name:'',channel:'Kakao',contact:'',address:''});renderPartners()};$('savePartners').onclick=savePartnersToSupabase;$('addUser').onclick=function(){users.push({username:'new_user',password:'1234',display_name:'',sellerCode:'99',gender:'female',tone:'ค่ะ',message_style:'ค่ะ',role:'seller',active:true});renderUsers()};$('saveUsers').onclick=saveUsersToSupabase;$('saveOcr').onclick=function(){localStorage.setItem(LS+'ocr_endpoint',$('ocrEndpoint').value.trim());localStorage.setItem(LS+'ocr_key',$('ocrKey').value.trim());toast('บันทึก AI OCR แล้ว')};$('saveTracking').onclick=function(){localStorage.setItem(LS+'tracking_base',$('trackingBase').value.trim());toast('บันทึก Tracking แล้ว')};document.querySelectorAll('#logout,[id=logout]').forEach(function(b){b.onclick=function(){location.reload()}});
+async function bootstrap(){
+  renderSettings();
+  await autoConnectSupabase();
+  if(remoteReady){
+    await fetchOrdersFromSupabase();
+    try{await loadFromSupabase()}catch(e){}
+    try{await fetchUsersFromSupabase()}catch(e){}
+    try{await fetchPartnersFromSupabase()}catch(e){}
+  }
+}
+bootstrap();
+})();
+</script>
 </body>
 </html>

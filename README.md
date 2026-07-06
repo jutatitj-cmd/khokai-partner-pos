@@ -1,22 +1,22 @@
-# KHOKAI Partner POS V2.2.0
+# KHOKAI Partner POS V17 Mini UI Fork
 
-- Sync จาก `product_options` ทั้งหมดก่อน (`product_option` / `v_product_options` เป็น fallback)
-- Product Master เลือกเปิดขายเฉพาะ option ที่ใช้ใน Partner POS
+Fork จาก Mini POS V16.3.5 เพื่อให้ UI เหมือน Mini POS มากที่สุด
+
+ตัดออกก่อน:
+- 거래명세서
+- Export ภาษี
+
+เพิ่มเฉพาะงาน Partner:
+- ตารางออเดอร์แยก `khokai_partner_orders`
+- Product settings แยก `partner_product_settings`
+- Partner master `partner_master`
+- ดึง `product_options` ทั้งหมด แล้วเปิดขายบาง option ใน Partner POS
 - ชื่อเกาหลีใช้ `pick_name`
-- ชื่อไทยใช้คอลัมน์ใหม่ `pick_name_th` ก่อน แล้วค่อย fallback อื่น
-- Quick Order แสดงเฉพาะสินค้าที่เปิดขายในโมดูลนี้
+- ชื่อไทยใช้ `pick_name_th` จาก `partner_product_settings`
+- ราคาส่งและจำนวนถุง/ลังเก็บใน `partner_product_settings`
+
+## Deploy
+อัป `index.html` และ `README.md` ทับ GitHub เดิม แล้ว Commit
 
 Commit message:
-
-```text
-V2.2.0 product options sale toggle
-```
-
-
-## V2.2.0
-- Supabase settings hidden from UI; connection can be embedded once in code.
-- Product Master ดึง `product_options` ทั้งหมด แล้วเปิด/ปิดขายใน Partner POS เอง
-- ชื่อเกาหลีใช้ `pick_name`
-- ชื่อไทยใช้ `pick_name_th` / `partner_pick_name_th` สำหรับชื่อสินค้าสั้น ไม่ใช่ชื่อ option
-- แก้ชื่อไทยและจำนวนต่อกล่อง/ลังจากหน้า Product Master ได้
-- บันทึกกลับ `product_options`: `pick_name_th`, `partner_pos_enabled`, `partner_box_qty`
+`V17 fork from Mini POS UI`
