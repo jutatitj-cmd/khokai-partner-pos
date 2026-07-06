@@ -1,9 +1,3 @@
-# KHOKAI Partner POS V17.0.11
+# KHOKAI Partner POS V17.0.12
 
-Hotfix: add product button robust binding.
-
-Commit message:
-
-```text
-V17.0.11 add product button hotfix
-```
+Visible version marker fix + add button hotfix.
