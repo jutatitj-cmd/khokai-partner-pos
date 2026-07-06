@@ -1,11 +1,16 @@
-# KHOKAI Partner POS V17.0.4
+# KHOKAI Partner POS V17.0.5
 
-Fork from Mini POS UI.
+Compact quick-order UI cleanup.
 
 Changes:
-- Customer messages open in Thai/Korean popup only, no large message box on home.
-- Tier and payment method are on the same compact row.
-- Added Tier 5.
-- Added delivery method buttons: self delivery / parcel.
-- Move add-product buttons to the left.
-- Product settings support T1-T5 prices.
+- Remove bank account selector from quick-order screen; bank info stays in Settings and is inserted into copied customer message.
+- Remove floating + button.
+- Make app title, TEMP badge, and temporary order number smaller.
+- Put Tier, payment method, and delivery method on one compact line.
+- Keep Mini POS-style flow and shared `khokai_pos_orders` table.
+
+Commit message:
+
+```text
+V17.0.5 compact quick order cleanup
+```
