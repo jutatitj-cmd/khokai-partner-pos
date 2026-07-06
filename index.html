@@ -3,16 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>KHOKAI Partner POS V17.0.14</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
-// V17.0.13 backup click handler: if normal binding fails, + เพิ่ม still opens product sheet.
-document.addEventListener('click',function(e){
-  var add=e.target&&e.target.closest&&e.target.closest('#addProductBtn');
-  var addDetail=e.target&&e.target.closest&&e.target.closest('#detailAddProduct');
-  if(add){openSheetQuick(e)}
-  if(addDetail){openSheetDetail(e)}
-},true);
-</script>
+<title>KHOKAI Partner POS V17.0.15</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 <style>
@@ -35,7 +27,7 @@ document.addEventListener('click',function(e){
 </head>
 <body>
 <div id="loginScreen" class="login card">
-  <h2 style="margin:0 0 6px">KHOKAI Partner POS V17.0.14</h2>
+  <h2 style="margin:0 0 6px">KHOKAI Partner POS V17.0.15</h2>
     <label class="label">Username</label><input id="loginUser" placeholder="username ใน Supabase">
   <label class="label" style="margin-top:8px">Password</label><input id="loginPass" type="password" placeholder="password ใน Supabase">
   <button id="loginBtn" class="btn ok full" style="margin-top:10px">เข้าใช้งาน</button>
@@ -1086,7 +1078,7 @@ $('loginBtn').onclick=async function(){
   if(!u){toast('ไม่พบ User นี้ใน Supabase หรือรหัสไม่ถูกต้อง');return}
   currentUser=u;$('loginScreen').classList.add('hide');$('app').classList.remove('hide');$('bottomnav').classList.remove('hide');$('who').textContent=u.username;$('sellerCodeShow').textContent=u.sellerCode||'';applyRoleUi();await fetchOrdersFromSupabase();ensureOrder();showView('quick')
 };
-$('menuBtn').onclick=openDrawer;$('closeMenu').onclick=closeDrawer;$('drawer').addEventListener('click',function(e){if(e.target.id==='drawer')closeDrawer()});document.querySelectorAll('[data-view]').forEach(function(b){b.onclick=function(){showView(b.dataset.view)}});document.querySelectorAll('[data-filter]').forEach(function(b){b.onclick=function(){historyFilter=b.dataset.filter;document.querySelectorAll('[data-filter]').forEach(function(x){x.classList.toggle('active',x===b)});renderHistory()}});$('searchBtn').onclick=function(){showView('history');$('searchBox').classList.toggle('hide');$('historySearch').focus()};if($('fab'))$('fab').onclick=function(e){openSheetQuick(e)};if($('addProductBtn'))$('addProductBtn').onclick=function(e){openSheetQuick(e)};$('closeSheet').onclick=closeSheet;$('sheetBackdrop').onclick=closeSheet;$('productSearch').oninput=renderProductSheet;$('productButtons').addEventListener('click',function(e){var btn=e.target.closest&&e.target.closest('.prodBtn');if(!btn)return;});
+$('menuBtn').onclick=openDrawer;$('closeMenu').onclick=closeDrawer;$('drawer').addEventListener('click',function(e){if(e.target.id==='drawer')closeDrawer()});document.querySelectorAll('[data-view]').forEach(function(b){b.onclick=function(){showView(b.dataset.view)}});document.querySelectorAll('[data-filter]').forEach(function(b){b.onclick=function(){historyFilter=b.dataset.filter;document.querySelectorAll('[data-filter]').forEach(function(x){x.classList.toggle('active',x===b)});renderHistory()}});$('searchBtn').onclick=function(){showView('history');$('searchBox').classList.toggle('hide');$('historySearch').focus()};if($('fab'))$('fab').onclick=function(e){openSheetQuick(e)};if($('addProductBtn'))$('addProductBtn').onclick=function(e){openSheetQuick(e)};$('closeSheet').onclick=closeSheet;$('sheetBackdrop').onclick=closeSheet;$('productSearch').oninput=renderProductSheet;$('productButtons').addEventListener('click',function(e){var btn=e.target.closest&&e.target.closest('.prodBtn');if(!btn)return;e.preventDefault();var opt=btn.dataset.opt;var p=(products||[]).find(function(x){return String(x.option_id)===String(opt)});if(!p){var idx=Number(btn.dataset.idx);var list=activeProducts();p=list[idx]||(products||[])[idx]}if(p)addProductToOrder(p,productSheetTarget||'quick');else toast('ไม่พบสินค้า');});
 document.querySelectorAll('#tierButtons .chip').forEach(function(b){b.onclick=function(){setTier(b.dataset.tier)}});document.querySelectorAll('#paymentButtons .chip').forEach(function(b){b.onclick=function(){setPay(b.dataset.pay)}});document.querySelectorAll('#deliveryButtons .chip').forEach(function(b){b.onclick=function(){setDelivery(b.dataset.delivery)}});$('msgThBtn').onclick=function(){openMessagePopup('th',currentOrder)};$('msgKoBtn').onclick=function(){openMessagePopup('ko',currentOrder)};$('closeMessageModal').onclick=closeMessagePopup;$('closeMessageModal2').onclick=closeMessagePopup;$('messageModal').addEventListener('click',function(e){if(e.target.id==='messageModal')closeMessagePopup()});
 $('newTempBtn').onclick=async function(){await fetchOrdersFromSupabase();currentOrder=markPartnerOrder({id:uuid(),order_no:newOrderNo(),status:'TEMP',seller:(currentUser&&currentUser.username)||'partner',sellerCode:(currentUser&&currentUser.sellerCode)||'00',items:[],price_tier:1,payment_method:'transfer',delivery_method:'parcel',shipping:5000,discount:0,extraIndex:0,bankIndex:0,created_at:new Date().toISOString()});renderQuick();await saveCurrentTemp()};$('saveTempBtn').onclick=saveCurrentTemp;['shipping','discount','extraSelect','bankSelect'].forEach(function(id){var el=$(id);if(!el)return;el.addEventListener('input',function(){calcText();autosaveDraft()});el.addEventListener('change',function(){calcText();autosaveDraft()})});$('refreshHistory').onclick=renderHistory;$('exportOmsBtn').onclick=exportPaidOrdersOMS;$('historySearch').oninput=renderHistory;$('backHistory').onclick=function(){showView('history')};if($('detailAddProduct'))$('detailAddProduct').onclick=function(e){openSheetDetail(e)};$('saveDetailItems').onclick=async function(){var o=detailOrder();if(!o)return;if(!canEditOrder(o)){toast('ออเดอร์นี้แก้ไขไม่ได้');return}saveDetailAmounts();o=detailOrder();await syncOrderToSupabase(o);fillDetail(o);toast(remoteReady?'บันทึกการแก้ไขลง Supabase แล้ว':'บันทึกในเครื่องแล้ว / Supabase: '+(remoteError||'ยังไม่พร้อม'))};['detailShipping','detailDiscount'].forEach(function(id){$(id).addEventListener('input',saveDetailAmounts);$(id).addEventListener('change',saveDetailAmounts)});
 $('completeOrder').onclick=async function(){var o=collectDetail();if(!o)return;if((o.items||[]).length===0){toast('ยังไม่มีสินค้าในออเดอร์');return}if(o.payment_method==='transfer'&&!o.payment_amount){if(!confirm('ยังไม่ได้กรอกยอดโอน ต้องการบันทึกเป็น PAID ไหม?'))return}if(o.payment_method==='credit'&&!o.payment_amount){o.payment_amount=0}if(o.payment_method==='cash'&&!o.payment_amount){o.payment_amount=orderTotal(o)}markPartnerOrder(o);o.status='PAID';o.paid_at=new Date().toISOString();save('orders',orders);await syncOrderToSupabase(o);fillDetail(o);toast(remoteReady?'บันทึกเป็น PAID ลง Supabase แล้ว':'บันทึกในเครื่องแล้ว / Supabase: '+(remoteError||'ยังไม่พร้อม'))};$('copyClose').onclick=async function(){var o=collectDetail();if(!o)return;markPartnerOrder(o);save('orders',orders);await syncOrderToSupabase(o);navigator.clipboard&&navigator.clipboard.writeText(closeMessage(o)).then(function(){toast('คัดลอกสรุปปิดแล้ว')})};$('cancelOrderBtn').onclick=function(){cancelOrder(editingId);showView('history')};$('trackingBaseDetail').oninput=function(){var o=orders.find(function(x){return x.id===editingId});$('trackingLink').value=makeTracking(this.value,o?o.order_no:'')};$('addrApi').onclick=function(){if(window.daum&&daum.Postcode){new daum.Postcode({oncomplete:function(data){$('zipcode').value=data.zonecode;$('address').value=data.roadAddress||data.jibunAddress}}).open()}else toast('Daum Postcode ยังโหลดไม่สำเร็จ')};
@@ -1104,45 +1096,6 @@ async function bootstrap(){
 bootstrap();
 })();
 
-
-// V17.0.14 direct click guard for quick product picker.
-// This makes + เพิ่ม and product selection work even if normal onclick binding is blocked by mobile browser/cache.
-document.addEventListener('click', function(e){
-  try{
-    var add = e.target && e.target.closest && e.target.closest('#addProductBtn');
-    if(add){
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      if(typeof openSheet === 'function') openSheet('quick');
-      return false;
-    }
-    var detailAdd = e.target && e.target.closest && e.target.closest('#detailAddProduct');
-    if(detailAdd){
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      if(typeof openSheet === 'function') openSheet('detail');
-      return false;
-    }
-    var prod = e.target && e.target.closest && e.target.closest('#productButtons .prodBtn');
-    if(prod){
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      var opt = prod.dataset.opt;
-      var p = (products || []).find(function(x){ return String(x.option_id) === String(opt); });
-      if(!p){
-        var idx = Number(prod.dataset.idx);
-        var list = (typeof activeProducts === 'function' ? activeProducts() : products) || [];
-        p = list[idx];
-      }
-      if(!p){ toast('เลือกสินค้าไม่ได้: ไม่พบข้อมูลสินค้า'); return false; }
-      addProductToOrder(p, productSheetTarget || 'quick');
-      return false;
-    }
-  }catch(err){
-    console.error('V17.0.14 direct click handler error', err);
-    if(typeof toast === 'function') toast('เลือกสินค้าไม่ได้: '+(err.message||err));
-  }
-}, true);
 </script>
 </body>
 </html>
