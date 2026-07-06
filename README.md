@@ -1,22 +1,19 @@
-# KHOKAI Partner POS V17 Mini UI Fork
+# KHOKAI Partner POS V17.0.1
 
-Fork จาก Mini POS V16.3.5 เพื่อให้ UI เหมือน Mini POS มากที่สุด
+Fork from Mini POS UI.
 
-ตัดออกก่อน:
-- 거래명세서
-- Export ภาษี
+## Auth
 
-เพิ่มเฉพาะงาน Partner:
-- ตารางออเดอร์แยก `khokai_partner_orders`
-- Product settings แยก `partner_product_settings`
-- Partner master `partner_master`
-- ดึง `product_options` ทั้งหมด แล้วเปิดขายบาง option ใน Partner POS
-- ชื่อเกาหลีใช้ `pick_name`
-- ชื่อไทยใช้ `pick_name_th` จาก `partner_product_settings`
-- ราคาส่งและจำนวนถุง/ลังเก็บใน `partner_product_settings`
+Partner POS uses the same login table as Mini POS:
 
-## Deploy
-อัป `index.html` และ `README.md` ทับ GitHub เดิม แล้ว Commit
+- `public.khokai_pos_users`
 
-Commit message:
-`V17 fork from Mini POS UI`
+No separate username/password table is used.
+
+## Core partner tables
+
+- `public.khokai_partner_orders`
+- `public.partner_master`
+- `public.partner_product_settings`
+- `public.product_options`
+
