@@ -1,14 +1,9 @@
-# KHOKAI Partner POS V17.0.9
+# KHOKAI Partner POS V17.0.11
 
-Fork จาก Mini POS UI สำหรับขายส่ง
+Hotfix: add product button robust binding.
 
-## Update
-- เปลี่ยน Tier เป็น PRICE 1-6
-- ตัดวิธีจัดส่งออกจากหน้าแรก
-- ปุ่ม New / บันทึก กลับมาเป็นปุ่มใหญ่
-- Popup ข้อความลูกค้าไทย/เกาหลี ไม่โชว์บนหน้าแรก
-- จำนวนสินค้า: ปุ่ม - / + / 5 / 10 / 100 / x ในบรรทัดเดียว
-- ปุ่ม 5, 10, 100 เป็นการตั้งค่าจำนวน ไม่ใช่บวกเพิ่ม
-- ค่าส่งเริ่มต้น 5,000
-- ใช้ khokai_pos_orders และเก็บ app_mode=PARTNER ใน payload
-- Product Setting รองรับ PRICE 1-6, ชื่อไทย, ชื่อเกาหลี, ถุง/ลัง
+Commit message:
+
+```text
+V17.0.11 add product button hotfix
+```
