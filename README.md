@@ -1,8 +1,12 @@
-# KHOKAI Partner POS V17.0.6
+# KHOKAI Partner POS V17.0.7
 
-- ตัดข้อความเสริมออกจากหน้าใช้งาน
-- ค่าส่งเริ่มต้น 5,000 วอน ลบเป็น 0 เองได้เมื่อส่งฟรี
-- ปุ่ม 🇹🇭 / 🇰🇷 อยู่บรรทัดเดียวกับยอดรวม
-- ยอดรวมเล็กลง
-- ปุ่ม Tier / วิธีรับเงิน / วิธีส่ง แสดงชื่อที่เพิ่งกดแบบ popup สั้น ๆ
-- ปุ่มเปิดเลขใหม่และบันทึกย่อเป็นไอคอน 🆕 / 💾
+- Enlarged Tier number buttons while keeping compact button size.
+- Moved New / Save into the same top action row as Tier, payment, and delivery.
+- Save hotfix: new orders now use UUID-compatible IDs for shared `khokai_pos_orders`.
+- Supabase save errors now show the real message instead of failing silently.
+
+Commit message:
+
+```text
+V17.0.7 tier visibility and save hotfix
+```
