@@ -1,12 +1,6 @@
-# KHOKAI Partner POS V17.0.7
+# KHOKAI Partner POS V17.0.8
 
-- Enlarged Tier number buttons while keeping compact button size.
-- Moved New / Save into the same top action row as Tier, payment, and delivery.
-- Save hotfix: new orders now use UUID-compatible IDs for shared `khokai_pos_orders`.
-- Supabase save errors now show the real message instead of failing silently.
-
-Commit message:
-
-```text
-V17.0.7 tier visibility and save hotfix
-```
+- แก้ปุ่มล้น: แยก Action Bar เป็น 2 แถว
+- เอา order_type ออกจากการ insert ลง khokai_pos_orders แล้วเก็บใน payload แทน
+- เพิ่มปุ่มจำนวน +10 / +100 และ -10
+- ปรับปุ่ม Tier ให้อ่านง่ายขึ้น
