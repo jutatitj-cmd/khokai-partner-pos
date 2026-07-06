@@ -1,19 +1,15 @@
-# KHOKAI Partner POS V17.0.2
+# KHOKAI Partner POS V17.0.3
 
-Fork จาก Mini POS UI V16.3.5
+Fork from Mini POS UI. Scope is small: quick partner orders, temporary save, customer copy message, shared login/orders with Mini POS.
 
-## แนวทาง
-- ใช้ UI / flow แบบ Mini POS ให้คุ้นมือที่สุด
-- ใช้ตาราง login เดียวกับ Mini POS: `khokai_pos_users`
-- ใช้ตารางออเดอร์เดียวกับ Mini POS: `khokai_pos_orders`
-- ไม่สร้าง `khokai_partner_orders` แล้ว
-- แยก Partner order ด้วย payload:
-  - `app_mode = PARTNER`
-  - `order_type = PARTNER`
-  - `sales_channel = PARTNER`
-- Mini POS ยังใช้งานต่อได้ ไม่แตะตารางเดิม
+## V17.0.3 changes
+- Quick order UI follows Mini POS style.
+- Price Tier buttons on quick order: ① ② ③ ④.
+- Payment method buttons: 🏦 transfer, 💵 cash, 📒 credit.
+- Customer message is no longer shown on the first page. Use 🇹🇭 / 🇰🇷 popup with Copy and Close.
+- Product settings support Thai name, Korean name, T1-T4 prices, pieces per box, enabled/disabled.
+- Product price on quick order follows selected Tier and is saved in the order payload.
+- Orders still save to shared `khokai_pos_orders` with `app_mode/order_type/sales_channel = PARTNER`.
 
-## อัปเดตจากรอบก่อน
-- แก้ error ไม่มีตาราง `khokai_partner_orders`
-- Partner POS จะอ่านเฉพาะออเดอร์ที่เป็น Partner จาก `payload`
-- ออเดอร์ใหม่ใช้ id ขึ้นต้น `p_`
+## Commit message
+V17.0.3 tier payment bilingual popup
