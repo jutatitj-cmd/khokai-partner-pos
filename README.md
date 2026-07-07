@@ -1,14 +1,12 @@
-# KHOKAI Partner POS V17.0.8.5
+# KHOKAI Partner POS V17.0.8.6
 
-Hotfix: บันทึกจัดลังให้เข้ากับ schema ที่รันไปแล้ว
+Base: V17.0.8 stable line.
 
-- ใช้ `khokai_order_boxes`
-- ใช้ `khokai_order_box_items`
-- บันทึกแบบ minimal columns เพื่อลด error จาก column ไม่ตรง
-- ถ้า Supabase ไม่รับ จะยังเก็บในเครื่องก่อน
-
-Commit message:
-
-```text
-V17.0.8.5 box save schema hotfix
-```
+Changes:
+- Quick order price buttons are now [1] [2] [3] [4] [5] [6]
+- Removed PRICE/Tier label from quick order screen
+- Removed payment method buttons from quick order screen; payment method is selected in payment/closing detail screen
+- Removed delivery method buttons from quick order screen; delivery method is selected per box in shipment/box screen
+- Restored text buttons: เปิดเลขใหม่ / บันทึก
+- Hide tracking fields from Partner POS UI; tracking remains for Tracking Module
+- Default box delivery method remains 택배 / parcel
