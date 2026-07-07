@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>KHOKAI Partner POS V17.0.8.4</title>
+<title>KHOKAI Partner POS V17.0.8.5</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
@@ -15,7 +15,7 @@
 </head>
 <body>
 <div id="loginScreen" class="login card">
-  <h2 style="margin:0 0 6px">KHOKAI Partner POS V17.0.8.4</h2>
+  <h2 style="margin:0 0 6px">KHOKAI Partner POS V17.0.8.5</h2>
     <label class="label">Username</label><input id="loginUser" placeholder="username ใน Supabase">
   <label class="label" style="margin-top:8px">Password</label><input id="loginPass" type="password" placeholder="password ใน Supabase">
   <button id="loginBtn" class="btn ok full" style="margin-top:10px">เข้าใช้งาน</button>
@@ -450,23 +450,46 @@ function collectBoxesFromUi(o){
 async function syncBoxesToSupabase(o){
   o=o||detailOrder(); if(!o)return false;
   collectBoxesFromUi(o);
-  var sb=sbClient(); if(!sb){toast('บันทึกจัดลังในเครื่องแล้ว');return false}
+  save('orders',orders);
+  var sb=sbClient();
+  if(!sb){toast('บันทึกจัดลังในเครื่องแล้ว');return false}
   try{
-    var old=await sb.from(BOX_TABLE).select('id').eq('order_id',o.id);
+    // ลบของเดิมก่อน แล้วเขียนใหม่ เพื่อลดปัญหาแก้ลังหลายรอบ
+    var old=await sb.from(BOX_TABLE).select('id').eq('order_no',o.order_no);
     if(old.error)throw old.error;
     var oldIds=(old.data||[]).map(function(x){return x.id});
-    if(oldIds.length){var di=await sb.from(BOX_ITEM_TABLE).delete().in('box_id',oldIds); if(di.error)throw di.error; var db=await sb.from(BOX_TABLE).delete().eq('order_id',o.id); if(db.error)throw db.error;}
+    if(oldIds.length){
+      var di=await sb.from(BOX_ITEM_TABLE).delete().in('box_id',oldIds); if(di.error)throw di.error;
+      var db=await sb.from(BOX_TABLE).delete().eq('order_no',o.order_no); if(db.error)throw db.error;
+    }
     var boxes=ensureBoxes(o);
     for(var i=0;i<boxes.length;i++){
       var b=boxes[i];
-      var row={order_id:o.id,order_no:o.order_no,box_no:i+1,delivery_method:b.delivery_method||'parcel',ship_date:b.ship_date||null,tracking_no:b.tracking_no||null,tracking_url:b.tracking_url||null,status:b.status||'draft',note:b.note||null,updated_at:new Date().toISOString()};
+      // เขียนเฉพาะ column พื้นฐานก่อน เพื่อให้ใช้ได้กับ schema ที่รันไปแล้ว
+      var row={
+        order_id:o.id,
+        order_no:o.order_no,
+        box_no:i+1,
+        delivery_method:b.delivery_method||'parcel',
+        ship_date:b.ship_date||null,
+        status:b.status||'draft',
+        note:b.note||null
+      };
       var br=await sb.from(BOX_TABLE).insert(row).select('id').single();
       if(br.error)throw br.error;
-      var items=(b.items||[]).filter(function(it){return Number(it.qty)>0}).map(function(it){return {box_id:br.data.id,order_id:o.id,order_no:o.order_no,option_id:String(it.option_id||''),display_product_id:String(it.display_product_id||''),qty:Number(it.qty)||0,updated_at:new Date().toISOString()}});
+      var items=(b.items||[]).filter(function(it){return Number(it.qty)>0}).map(function(it){
+        return {box_id:br.data.id,option_id:String(it.option_id||''),product_name:(productByOpt(it.option_id).thai_name||''),qty:Number(it.qty)||0};
+      });
       if(items.length){var ir=await sb.from(BOX_ITEM_TABLE).insert(items); if(ir.error)throw ir.error;}
     }
-    toast('บันทึกจัดลังลง Supabase แล้ว');return true;
-  }catch(e){console.warn('sync boxes failed',e);toast('บันทึกจัดลังไม่ได้: '+(e.message||e));return false}
+    toast('บันทึกจัดลังแล้ว');return true;
+  }catch(e){
+    console.warn('sync boxes failed',e);
+    // ไม่ให้ข้อมูลหาย เก็บในเครื่องไว้ก่อน และโชว์ error จริง
+    save('orders',orders);
+    toast('บันทึกลังในเครื่องแล้ว / Supabase: '+(e.message||e));
+    return false;
+  }
 }
 async function openDetail(id){editingId=id;var o=orders.find(function(x){return x.id===id});if(!o)return;fillDetail(o);showView('detail');await fetchBoxesFromSupabase(o);renderBoxes(o)}
 function fillDetail(o){$('detailOrderNo').textContent=o.order_no;$('detailStatus').textContent=statusLabel(o.status);$('detailStatus').className='status '+statusClass(o.status);if($('cancelOrderBtn'))$('cancelOrderBtn').classList.toggle('hide',(o.status||'TEMP')!=='TEMP');$('payAmount').value=o.payment_amount||orderTotal(o);$('payDate').value=o.payment_date||'';$('payTime').value=o.payment_time||'';$('payerName').value=o.payer_name||'';$('customerName').value=o.customer_name||'';$('channel').value=o.channel||'Facebook';$('receiverName').value=o.receiver_name||'';$('receiverPhone').value=o.receiver_phone||'';$('zipcode').value=o.zipcode||'';$('address').value=o.address||'';$('shippingMemo').value=o.shipping_memo||'';$('shipDate').value=o.ship_date||'';var base=localStorage.getItem(LS+'tracking_base')||'';$('trackingBaseDetail').value=o.tracking_base||base;$('trackingLink').value=o.tracking_link||o.tracking_url||makeTracking(base,o.order_no);renderDetailOrderItems(o)}

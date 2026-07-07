@@ -1,25 +1,14 @@
-# KHOKAI Partner POS V17.0.8.4
+# KHOKAI Partner POS V17.0.8.5
 
-Base: V17.0.8.x stable line.
+Hotfix: บันทึกจัดลังให้เข้ากับ schema ที่รันไปแล้ว
 
-## Changes
-- Add real box/shipment structure for Partner POS without using existing `khokai_shipments`.
-- New tables:
-  - `khokai_order_boxes`
-  - `khokai_order_box_items`
-- Supports one order with multiple boxes, different ship dates, different tracking numbers, and multiple SKU per box.
-- Adds `📦 จัดลัง / Shipment` section in order detail page.
-- Keeps orders in `khokai_pos_orders` with `order_module = partner_pos`.
-- Does not touch Mini POS order flow.
+- ใช้ `khokai_order_boxes`
+- ใช้ `khokai_order_box_items`
+- บันทึกแบบ minimal columns เพื่อลด error จาก column ไม่ตรง
+- ถ้า Supabase ไม่รับ จะยังเก็บในเครื่องก่อน
 
-## Why not use khokai_shipments
-Existing `khokai_shipments` has `unique(order_no)`, so it only supports one shipment per order. Partner POS needs multiple boxes per order.
-
-## Deploy
-Upload all files to GitHub root and commit:
+Commit message:
 
 ```text
-V17.0.8.4 order boxes shipments
+V17.0.8.5 box save schema hotfix
 ```
-
-Then run SQL from Settings once if new tables do not exist.
