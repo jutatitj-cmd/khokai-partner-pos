@@ -84,7 +84,8 @@
 
   <section id="viewHistory" class="hide">
     <div class="card">
-      <div class="bar"><div class="sectionTitle grow">ประวัติ</div><button id="exportOmsBtn" class="btn blue small">ดาวน์โหลด OMS</button><button id="refreshHistory" class="btn soft small">รีเฟรช</button></div>
+      <div class="bar"><div class="sectionTitle grow">ประวัติ</div><input id="omsShipDate" type="date" style="width:150px"><button id="exportOmsBtn" class="btn blue small">ดาวน์โหลด OMS</button><button id="refreshHistory" class="btn soft small">รีเฟรช</button></div>
+      <p class="mini muted">เลือกวันที่จัดส่งเพื่อดาวน์โหลดเฉพาะลังที่ส่งวันนั้น ไม่เลือกจะดาวน์โหลดออเดอร์ PAID ทั้งหมด</p>
       <div class="filterbar">
         <button class="filterbtn active" data-filter="ACTIVE">Active</button>
         <button class="filterbtn" data-filter="TEMP">TEMP</button>
@@ -171,7 +172,6 @@
     <div class="card">
       <div class="sectionTitle">จัดส่ง/ปิดออเดอร์</div>
       <div class="grid2">
-        <div><label class="label">วันจัดส่ง</label><input id="shipDate" type="date"></div>
         <div class="hide"><label class="label">Tracking URL หลัก</label><input id="trackingBaseDetail" placeholder="https://.../"></div>
       </div>
       <div class="hide"><label class="label" style="margin-top:8px">Tracking link</label><input id="trackingLink" placeholder="สร้างจาก URL หลัก + เลขออเดอร์"></div>
@@ -409,6 +409,12 @@ function ensureBoxes(o){
   o.boxes.forEach(function(b,i){b.box_no=Number(b.box_no)||i+1;b.delivery_method=b.delivery_method||'parcel';if(!Array.isArray(b.items))b.items=[]});
   return o.boxes;
 }
+function orderShipDates(o){
+  var set={};
+  (o.boxes||[]).forEach(function(b){if(b.ship_date)set[b.ship_date]=true});
+  if(!Object.keys(set).length&&o.ship_date)set[o.ship_date]=true;
+  return Object.keys(set).sort();
+}
 function renderBoxes(o){
   o=o||detailOrder(); if(!o)return;
   var box=$('boxList'); if(!box)return;
@@ -485,8 +491,8 @@ async function syncBoxesToSupabase(o){
   }
 }
 async function openDetail(id){editingId=id;var o=orders.find(function(x){return x.id===id});if(!o)return;fillDetail(o);showView('detail');await fetchBoxesFromSupabase(o);renderBoxes(o)}
-function fillDetail(o){$('detailOrderNo').textContent=o.order_no;$('detailStatus').textContent=statusLabel(o.status);$('detailStatus').className='status '+statusClass(o.status);if($('cancelOrderBtn'))$('cancelOrderBtn').classList.toggle('hide',(o.status||'TEMP')!=='TEMP');if($('detailPaymentMethod'))$('detailPaymentMethod').value=o.payment_method||'transfer';$('payAmount').value=o.payment_amount||orderTotal(o);$('payDate').value=o.payment_date||'';$('payTime').value=o.payment_time||'';$('payerName').value=o.payer_name||'';$('customerName').value=o.customer_name||'';$('channel').value=o.channel||'Facebook';$('receiverName').value=o.receiver_name||'';$('receiverPhone').value=o.receiver_phone||'';$('zipcode').value=o.zipcode||'';$('address').value=o.address||'';$('shippingMemo').value=o.shipping_memo||'';$('shipDate').value=o.ship_date||'';var base=localStorage.getItem(LS+'tracking_base')||'';$('trackingBaseDetail').value=o.tracking_base||base;$('trackingLink').value=o.tracking_link||o.tracking_url||makeTracking(base,o.order_no);renderDetailOrderItems(o)}
-function collectDetail(){var o=orders.find(function(x){return x.id===editingId});if(!o)return null;if($('detailPaymentMethod'))o.payment_method=$('detailPaymentMethod').value||'transfer';o.payment_amount=Number($('payAmount').value)||0;o.payment_date=$('payDate').value;o.payment_time=$('payTime').value.trim();o.payer_name=$('payerName').value.trim();o.customer_name=$('customerName').value.trim();o.channel=$('channel').value;o.receiver_name=$('receiverName').value.trim();o.receiver_phone=$('receiverPhone').value.trim();o.zipcode=$('zipcode').value.trim();o.address=$('address').value.trim();o.shipping_memo=$('shippingMemo').value.trim();o.ship_date=$('shipDate').value;o.tracking_base=$('trackingBaseDetail').value.trim();o.tracking_link=$('trackingLink').value.trim()||makeTracking(o.tracking_base,o.order_no);o.updated_at=new Date().toISOString();return o}
+function fillDetail(o){$('detailOrderNo').textContent=o.order_no;$('detailStatus').textContent=statusLabel(o.status);$('detailStatus').className='status '+statusClass(o.status);if($('cancelOrderBtn'))$('cancelOrderBtn').classList.toggle('hide',(o.status||'TEMP')!=='TEMP');if($('detailPaymentMethod'))$('detailPaymentMethod').value=o.payment_method||'transfer';$('payAmount').value=o.payment_amount||orderTotal(o);$('payDate').value=o.payment_date||'';$('payTime').value=o.payment_time||'';$('payerName').value=o.payer_name||'';$('customerName').value=o.customer_name||'';$('channel').value=o.channel||'Facebook';$('receiverName').value=o.receiver_name||'';$('receiverPhone').value=o.receiver_phone||'';$('zipcode').value=o.zipcode||'';$('address').value=o.address||'';$('shippingMemo').value=o.shipping_memo||'';var base=localStorage.getItem(LS+'tracking_base')||'';$('trackingBaseDetail').value=o.tracking_base||base;$('trackingLink').value=o.tracking_link||o.tracking_url||makeTracking(base,o.order_no);renderDetailOrderItems(o)}
+function collectDetail(){var o=orders.find(function(x){return x.id===editingId});if(!o)return null;if($('detailPaymentMethod'))o.payment_method=$('detailPaymentMethod').value||'transfer';o.payment_amount=Number($('payAmount').value)||0;o.payment_date=$('payDate').value;o.payment_time=$('payTime').value.trim();o.payer_name=$('payerName').value.trim();o.customer_name=$('customerName').value.trim();o.channel=$('channel').value;o.receiver_name=$('receiverName').value.trim();o.receiver_phone=$('receiverPhone').value.trim();o.zipcode=$('zipcode').value.trim();o.address=$('address').value.trim();o.shipping_memo=$('shippingMemo').value.trim();o.tracking_base=$('trackingBaseDetail').value.trim();o.tracking_link=$('trackingLink').value.trim()||makeTracking(o.tracking_base,o.order_no);o.updated_at=new Date().toISOString();return o}
 function makeTracking(base,orderNo){if(!base)return '';return base.replace(/\/$/,'')+'/'+encodeURIComponent(orderNo)}
 function itemNameByLang(p,lang){return lang==='ko'?(p.pick_name||p.kr_name||p.option_name_kr||krDisplay(p)||p.thai_name||'상품'):(p.thai_name||p.pick_name_th||p.name_th||p.kr_name||'สินค้า')}
 function buildCustomerMessage(o,lang){
@@ -537,14 +543,15 @@ function buildCustomerMessage(o,lang){
 function buildPaidCustomerMessage(o,lang){
   var user=(users.find(function(u){return u.username===o.seller})||currentUser||{});
   var tone=user.tone||user.message_style||'';
+  var shipDates=orderShipDates(o);
   if(lang==='ko'){
     var ko='결제 확인되었습니다.\n\n';
-    if(o.ship_date)ko+='출고 예정일: '+o.ship_date+'\n\n';
+    if(shipDates.length)ko+='출고 예정일: '+shipDates.join(', ')+'\n\n';
     ko+='상품 준비 후 발송해드리겠습니다.\n감사합니다.';
     return ko;
   }
   var th='ได้รับการชำระเงินเรียบร้อยแล้ว'+(tone?' '+tone:'')+'\n\n';
-  if(o.ship_date)th+='วันจัดส่ง: '+o.ship_date+'\n\n';
+  if(shipDates.length)th+='วันจัดส่ง: '+shipDates.join(', ')+'\n\n';
   th+='ทางร้านจะเตรียมสินค้าและจัดส่งให้'+(tone?' '+tone:'');
   return th;
 }
@@ -577,7 +584,7 @@ function renderDashboard(){
     else by[u].temp++;
     if(st!=='CANCELLED')by[u].total+=orderTotal(o);
 
-    var sd=cleanShipDate(o.ship_date||o.shipping_date||o.delivery_date||o.shipped_at||o.shipping_at);
+    var sd=cleanShipDate(orderShipDates(o)[0]||o.ship_date||o.shipping_date||o.delivery_date||o.shipped_at||o.shipping_at);
     if(st==='PAID'||st==='COMPLETED'||st==='SHIPPED'){
       eligibleOrders++;
       if(!sd){missingShipDate++;return}
@@ -1138,9 +1145,20 @@ async function syncTrackingFromSupabase(){
   }catch(e){console.warn('tracking sync failed',e);return false}
 }
 function paidOrdersForExport(){return orders.filter(function(o){return (o.status||'')==='PAID'})}
-function orderRowsForOms(o){
+function boxItemsForShipDate(o,shipDate){
+  var merged=[];
+  ensureBoxes(o).filter(function(b){return b.ship_date===shipDate}).forEach(function(b){
+    (b.items||[]).forEach(function(bi){
+      var ex=merged.find(function(x){return String(x.option_id)===String(bi.option_id)});
+      if(ex)ex.qty=(Number(ex.qty)||0)+(Number(bi.qty)||0);
+      else merged.push({option_id:bi.option_id,display_product_id:bi.display_product_id,qty:Number(bi.qty)||0});
+    });
+  });
+  return merged;
+}
+function orderRowsForOms(o,items){
   var rows=[];
-  (o.items||[]).forEach(function(it){
+  (items||o.items||[]).forEach(function(it){
     var p=productByOpt(it.option_id);
     var addr=(o.address||'').trim(); if(o.shipping_memo)addr += ' ('+o.shipping_memo+')';
     rows.push([
@@ -1163,20 +1181,22 @@ function orderRowsForOms(o){
 }
 async function exportPaidOrdersOMS(){
   await fetchOrdersFromSupabase();
+  var shipDate=($('omsShipDate')&&$('omsShipDate').value)||'';
   var paid=paidOrdersForExport();
-  if(!paid.length){toast('ยังไม่มีออเดอร์สถานะ PAID สำหรับดาวน์โหลด');return}
+  if(shipDate)paid=paid.filter(function(o){return orderShipDates(o).indexOf(shipDate)>=0});
+  if(!paid.length){toast(shipDate?'ไม่มีออเดอร์ PAID ที่มีลังส่งวันที่ '+shipDate:'ยังไม่มีออเดอร์สถานะ PAID สำหรับดาวน์โหลด');return}
   var wb=new ExcelJS.Workbook();
   var ws=wb.addWorksheet('Orders');
   var headers=['플랫폼','주문번호','묶음배송번호','수취인이름','수취인전화번호','우편번호','수취인주소','노출상품ID','옵션ID','등록옵션명','노출상품명(옵션명)','수량','BatchName(สรุปหยิบ)'];
   ws.addRow(headers);
-  paid.forEach(function(o){orderRowsForOms(o).forEach(function(r){ws.addRow(r)})});
+  paid.forEach(function(o){orderRowsForOms(o,shipDate?boxItemsForShipDate(o,shipDate):null).forEach(function(r){ws.addRow(r)})});
   ws.getRow(1).font={bold:true};
   ws.columns=[14,16,16,14,16,10,36,16,16,18,40,8,20].map(function(w){return {width:w}});
   ws.eachRow(function(row){row.eachCell(function(cell){cell.alignment={vertical:'middle',wrapText:true};cell.border={top:{style:'thin'},left:{style:'thin'},bottom:{style:'thin'},right:{style:'thin'}}})});
   var buf=await wb.xlsx.writeBuffer();
   var blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='KHOKAI_OMS_V17_3_'+todayYYMMDD()+'.xlsx';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1000);
-  toast('ดาวน์โหลดไฟล์ OMS แล้ว: '+paid.length+' ออเดอร์');
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='KHOKAI_OMS_V17_3_'+(shipDate||todayYYMMDD())+'.xlsx';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1000);
+  toast('ดาวน์โหลดไฟล์ OMS แล้ว: '+paid.length+' ออเดอร์'+(shipDate?' (วันจัดส่ง '+shipDate+')':''));
 }
 
 // events
