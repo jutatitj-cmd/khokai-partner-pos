@@ -555,18 +555,24 @@ function fillDetail(o){$('detailOrderNo').textContent=o.order_no;$('detailStatus
 function collectDetail(){var o=orders.find(function(x){return x.id===editingId});if(!o)return null;if($('detailPaymentMethod'))o.payment_method=$('detailPaymentMethod').value||'transfer';o.payment_amount=Number($('payAmount').value)||0;o.payment_date=$('payDate').value;o.payment_time=$('payTime').value.trim();o.payer_name=$('payerName').value.trim();o.customer_name=$('customerName').value.trim();o.channel=$('channel').value;o.receiver_name=$('receiverName').value.trim();o.receiver_phone=$('receiverPhone').value.trim();o.zipcode=$('zipcode').value.trim();o.address=$('address').value.trim();o.shipping_memo=$('shippingMemo').value.trim();o.tracking_base=$('trackingBaseDetail').value.trim();o.tracking_link=$('trackingLink').value.trim()||makeTracking(o.tracking_base,o.order_no);o.updated_at=new Date().toISOString();return o}
 function makeTracking(base,orderNo){if(!base)return '';return base.replace(/\/$/,'')+'/'+encodeURIComponent(orderNo)}
 function itemNameByLang(p,lang){return lang==='ko'?(p.pick_name||p.kr_name||p.option_name_kr||krDisplay(p)||p.thai_name||'상품'):(p.thai_name||p.pick_name_th||p.name_th||p.kr_name||'สินค้า')}
+function orderSubtotal(o){return (o.items||[]).reduce(function(s,it){return s+(Number(it.qty)||0)*(Number(it.price)||0)},0)}
+function orderItemLine(it,lang){
+  var p=productByOpt(it.option_id);
+  var qty=Number(it.qty)||0;
+  var price=Number(it.price)||0;
+  var line=qty*price;
+  return '• '+itemNameByLang(p,lang)+' 1kg x '+qty+' = '+money(line).replace(' วอน', lang==='ko'?'원':' วอน');
+}
+function orderTrackingLink(o){
+  var base=localStorage.getItem(LS+'tracking_base')||'';
+  return o.tracking_link||o.tracking_url||makeTracking(o.tracking_base||base,o.order_no);
+}
 function buildCustomerMessage(o,lang){
   var user=(users.find(function(u){return u.username===o.seller})||currentUser||{});
   var tone=user.tone||user.message_style||'';
   var total=orderTotal(o);
   var items=o.items||[];
-  function itemLine(it, lang){
-    var p=productByOpt(it.option_id);
-    var qty=Number(it.qty)||0;
-    var price=Number(it.price)||0;
-    var line=qty*price;
-    return '• '+itemNameByLang(p,lang)+' 1kg x '+qty+' = '+money(line).replace(' วอน', lang==='ko'?'원':' วอน');
-  }
+  function itemLine(it, lang){return orderItemLine(it,lang)}
   var txt='';
   if(lang==='ko'){
     txt+='주문 확인드립니다.\n\n';
@@ -603,16 +609,44 @@ function buildCustomerMessage(o,lang){
 function buildPaidCustomerMessage(o,lang){
   var user=(users.find(function(u){return u.username===o.seller})||currentUser||{});
   var tone=user.tone||user.message_style||'';
+  var items=o.items||[];
+  var subtotal=orderSubtotal(o);
+  var total=orderTotal(o);
   var shipDates=orderShipDates(o);
+  var link=orderTrackingLink(o);
   if(lang==='ko'){
-    var ko='결제 확인되었습니다.\n\n';
-    if(shipDates.length)ko+='출고 예정일: '+shipDates.join(', ')+'\n\n';
-    ko+='상품 준비 후 발송해드리겠습니다.\n감사합니다.';
+    var ko='결제 확인되었습니다 ('+o.order_no+').\n\n';
+    items.forEach(function(it){ko+=orderItemLine(it,'ko')+'\n'});
+    ko+='\n상품 금액 '+money(subtotal).replace(' วอน','원')+'\n';
+    if(Number(o.shipping)||0)ko+='배송비 '+money(o.shipping).replace(' วอน','원')+'\n';
+    if(Number(o.discount)||0)ko+='할인 -'+money(o.discount).replace(' วอน','원')+'\n';
+    ko+='총 결제금액 '+money(total).replace(' วอน','원')+'\n';
+    ko+='\n✅ 입금 확인 '+money(o.payment_amount||total).replace(' วอน','원')+'\n';
+    if(o.payer_name)ko+='입금자: '+o.payer_name+'\n';
+    if(o.payment_date)ko+='일시: '+o.payment_date+(o.payment_time?' '+o.payment_time:'')+'\n';
+    if(shipDates.length)ko+='\n🚚 출고 예정일: '+shipDates.join(', ')+'\n';
+    if(o.receiver_name)ko+='수취인: '+o.receiver_name+'\n';
+    if(o.receiver_phone)ko+='전화: '+o.receiver_phone+'\n';
+    if(o.address)ko+='주소: '+o.address+(o.shipping_memo?' ('+o.shipping_memo+')':'')+'\n';
+    if(link)ko+='\n배송 조회\n'+link+'\n';
+    ko+='\n📌 수취인 성함, 전화번호, 주소를 확인해 주세요. 수정이 필요하시면 발송 전에 알려주세요.\n감사합니다 🙏';
     return ko;
   }
-  var th='ได้รับการชำระเงินเรียบร้อยแล้ว'+(tone?' '+tone:'')+'\n\n';
-  if(shipDates.length)th+='วันจัดส่ง: '+shipDates.join(', ')+'\n\n';
-  th+='ทางร้านจะเตรียมสินค้าและจัดส่งให้'+(tone?' '+tone:'');
+  var th='สรุปออเดอร์ '+o.order_no+(tone?' '+tone:'')+'\n\n';
+  items.forEach(function(it){th+=orderItemLine(it,'th')+'\n'});
+  th+='\nค่าสินค้า '+money(subtotal)+'\n';
+  if(Number(o.shipping)||0)th+='ค่าส่ง '+money(o.shipping)+'\n';
+  if(Number(o.discount)||0)th+='ส่วนลด -'+money(o.discount)+'\n';
+  th+='ยอดรวม '+money(total)+'\n';
+  th+='\n✅ ชำระแล้ว '+money(o.payment_amount||total)+'\n';
+  if(o.payer_name)th+='ผู้โอน: '+o.payer_name+'\n';
+  if(o.payment_date)th+='วันที่: '+o.payment_date+(o.payment_time?' '+o.payment_time:'')+'\n';
+  if(shipDates.length)th+='\n🚚 กำหนดจัดส่ง: '+shipDates.join(', ')+'\n';
+  if(o.receiver_name)th+='ผู้รับ: '+o.receiver_name+'\n';
+  if(o.receiver_phone)th+='โทร: '+o.receiver_phone+'\n';
+  if(o.address)th+='ที่อยู่: '+o.address+(o.shipping_memo?' ('+o.shipping_memo+')':'')+'\n';
+  if(link)th+='\nติดตามพัสดุ\n'+link+'\n';
+  th+='\n📌 รบกวนตรวจสอบชื่อผู้รับ เบอร์โทรศัพท์ และที่อยู่ หากต้องการแก้ไข กรุณาแจ้งก่อนร้านจัดส่ง\nขอบคุณที่อุดหนุน'+(tone?tone:'ครับ')+' 🙏';
   return th;
 }
 function customerMessageByStatus(o,lang){
