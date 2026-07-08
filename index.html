@@ -119,10 +119,25 @@
     </div>
 
     <div class="card">
-      <div class="bar"><div class="sectionTitle grow">📦 จัดลัง / Shipment</div><button id="addBoxBtn" class="btn blue small">+ ลัง</button></div>
-      <div class="mini">ใช้สำหรับออเดอร์ส่ง 택배 หลายลัง หรือส่งคนละวัน หนึ่งลังใส่ได้หลาย SKU</div>
+      <div class="sectionTitle">🚚 วิธีจัดส่ง</div>
+      <div id="shipMethodButtons" class="chiprow" style="margin-top:8px">
+        <button class="chip" data-shipmethod="parcel">📦 택배</button>
+        <button class="chip" data-shipmethod="self">🚚 ส่งเอง / รถห้องเย็น</button>
+      </div>
+    </div>
+
+    <div id="boxSection" class="card hide">
+      <div class="bar"><div class="sectionTitle grow">📦 จัดลัง / Shipment</div><button id="autoSplitBtn" class="btn soft small">แบ่งอัตโนมัติ</button><button id="addBoxBtn" class="btn blue small">+ ลัง</button></div>
+      <div class="mini">ใช้สำหรับออเดอร์ส่ง 택배 หลายลัง หรือส่งคนละวัน หนึ่งลังใส่ได้หลาย SKU · แบ่งอัตโนมัติใช้จำนวน/ลังที่ตั้งไว้ในเมนูตั้งค่าของแต่ละสินค้า</div>
       <div id="boxList"></div>
       <button id="saveBoxesBtn" class="btn ok full" style="margin-top:8px">บันทึกการจัดลัง</button>
+    </div>
+
+    <div id="simpleShipSection" class="card hide">
+      <div class="sectionTitle">🚚 จัดส่ง (ไม่แยกลัง)</div>
+      <label class="label" style="margin-top:8px">วันที่จัดส่ง</label><input id="simpleShipDate" type="date">
+      <label class="label" style="margin-top:8px">หมายเหตุ</label><input id="simpleShipNote">
+      <button id="saveSimpleShipBtn" class="btn ok full" style="margin-top:8px">บันทึกวันจัดส่ง</button>
     </div>
 
     <div class="card">
@@ -401,11 +416,34 @@ async function fetchBoxesFromSupabase(o){
   }catch(e){console.warn('fetch boxes failed',e);return o.boxes||[]}
 }
 function defaultBoxFromOrder(o){
-  return {box_no:1,delivery_method:'parcel',ship_date:o.ship_date||'',tracking_no:'',tracking_url:'',status:'draft',note:'',items:(o.items||[]).map(function(it){return {option_id:String(it.option_id||''),display_product_id:String(it.display_product_id||''),qty:Number(it.qty)||0}})};
+  return {box_no:1,delivery_method:o.delivery_method||'parcel',ship_date:o.ship_date||'',tracking_no:'',tracking_url:'',status:'draft',note:'',items:(o.items||[]).map(function(it){return {option_id:String(it.option_id||''),display_product_id:String(it.display_product_id||''),qty:Number(it.qty)||0}})};
+}
+function autoSplitBoxes(o){
+  var lines=(o.items||[]).map(function(it){
+    var p=productByOpt(it.option_id)||{};
+    var qty=Number(it.qty)||0;
+    var limit=Number(p.pieces_per_box)||0;
+    return {option_id:String(it.option_id||''),display_product_id:String(it.display_product_id||''),qty:qty,limit:limit>0?limit:qty};
+  }).filter(function(l){return l.qty>0});
+  if(!lines.length)return [defaultBoxFromOrder(o)];
+  var maxBoxes=lines.reduce(function(m,l){return Math.max(m,Math.ceil(l.qty/l.limit)||1)},1);
+  var boxes=[];
+  for(var i=0;i<maxBoxes;i++){
+    var boxItems=[];
+    lines.forEach(function(l){
+      var remaining=l.qty-i*l.limit;
+      if(remaining<=0)return;
+      boxItems.push({option_id:l.option_id,display_product_id:l.display_product_id,qty:Math.min(remaining,l.limit)});
+    });
+    boxes.push({box_no:i+1,delivery_method:o.delivery_method||'parcel',ship_date:'',tracking_no:'',tracking_url:'',status:'draft',note:'',items:boxItems});
+  }
+  return boxes;
 }
 function ensureBoxes(o){
   if(!o)return [];
-  if(!Array.isArray(o.boxes)||!o.boxes.length)o.boxes=[defaultBoxFromOrder(o)];
+  if(!Array.isArray(o.boxes)||!o.boxes.length){
+    o.boxes=(o.delivery_method||'parcel')==='parcel'?autoSplitBoxes(o):[defaultBoxFromOrder(o)];
+  }
   o.boxes.forEach(function(b,i){b.box_no=Number(b.box_no)||i+1;b.delivery_method=b.delivery_method||'parcel';if(!Array.isArray(b.items))b.items=[]});
   return o.boxes;
 }
@@ -415,8 +453,30 @@ function orderShipDates(o){
   if(!Object.keys(set).length&&o.ship_date)set[o.ship_date]=true;
   return Object.keys(set).sort();
 }
+function setShipMethod(m){
+  var o=detailOrder(); if(!o)return;
+  o.delivery_method=m||'parcel';
+  ensureBoxes(o).forEach(function(b){b.delivery_method=o.delivery_method});
+  save('orders',orders);
+  renderShipMethodUI(o);
+  renderBoxes(o);
+}
+function renderShipMethodUI(o){
+  o=o||detailOrder(); if(!o)return;
+  var method=o.delivery_method||'parcel';
+  document.querySelectorAll('#shipMethodButtons .chip').forEach(function(b){b.classList.toggle('active',b.dataset.shipmethod===method)});
+  var isParcel=method==='parcel';
+  if($('boxSection'))$('boxSection').classList.toggle('hide',!isParcel);
+  if($('simpleShipSection'))$('simpleShipSection').classList.toggle('hide',isParcel);
+  if(!isParcel){
+    var b=ensureBoxes(o)[0];
+    if($('simpleShipDate'))$('simpleShipDate').value=b.ship_date||'';
+    if($('simpleShipNote'))$('simpleShipNote').value=b.note||'';
+  }
+}
 function renderBoxes(o){
   o=o||detailOrder(); if(!o)return;
+  renderShipMethodUI(o);
   var box=$('boxList'); if(!box)return;
   var boxes=ensureBoxes(o);
   box.innerHTML='';
@@ -1211,7 +1271,7 @@ $('loginBtn').onclick=async function(){
 };
 $('menuBtn').onclick=openDrawer;$('closeMenu').onclick=closeDrawer;$('drawer').addEventListener('click',function(e){if(e.target.id==='drawer')closeDrawer()});document.querySelectorAll('[data-view]').forEach(function(b){b.onclick=function(){showView(b.dataset.view)}});document.querySelectorAll('[data-filter]').forEach(function(b){b.onclick=function(){historyFilter=b.dataset.filter;document.querySelectorAll('[data-filter]').forEach(function(x){x.classList.toggle('active',x===b)});renderHistory()}});$('searchBtn').onclick=function(){showView('history');$('searchBox').classList.toggle('hide');$('historySearch').focus()};$('fab').onclick=openSheet;$('addProductBtn').onclick=openSheet;$('closeSheet').onclick=closeSheet;$('sheetBackdrop').onclick=closeSheet;$('productSearch').oninput=renderProductSheet;
 document.querySelectorAll('#tierButtons .chip').forEach(function(b){b.onclick=function(){setTier(b.dataset.tier)}});document.querySelectorAll('#paymentButtons .chip').forEach(function(b){b.onclick=function(){setPay(b.dataset.pay)}});document.querySelectorAll('#deliveryButtons .chip').forEach(function(b){b.onclick=function(){setDelivery(b.dataset.delivery)}});$('msgThBtn').onclick=function(){openMessagePopup('th',currentOrder)};$('msgKoBtn').onclick=function(){openMessagePopup('ko',currentOrder)};$('closeMessageModal').onclick=closeMessagePopup;$('closeMessageModal2').onclick=closeMessagePopup;$('messageModal').addEventListener('click',function(e){if(e.target.id==='messageModal')closeMessagePopup()});
-$('newTempBtn').onclick=async function(){await fetchOrdersFromSupabase();currentOrder=markPartnerOrder({id:uuid(),order_no:newOrderNo(),status:'TEMP',seller:currentUser.username,sellerCode:currentUser.sellerCode,items:[],price_tier:1,payment_method:'transfer',delivery_method:'parcel',shipping:5000,discount:0,extraIndex:0,bankIndex:0,created_at:new Date().toISOString()});renderQuick();await saveCurrentTemp()};$('saveTempBtn').onclick=saveCurrentTemp;['shipping','discount','extraSelect','bankSelect'].forEach(function(id){var el=$(id);if(!el)return;el.addEventListener('input',function(){calcText();autosaveDraft()});el.addEventListener('change',function(){calcText();autosaveDraft()})});$('refreshHistory').onclick=renderHistory;$('exportOmsBtn').onclick=exportPaidOrdersOMS;$('historySearch').oninput=renderHistory;$('backHistory').onclick=function(){showView('history')};$('detailAddProduct').onclick=function(){openSheet('detail')};$('addBoxBtn').onclick=function(){var o=detailOrder();if(!o)return;var boxes=ensureBoxes(o);var newItems=(o.items||[]).map(function(it){var used=boxes.reduce(function(sum,ob){var f=(ob.items||[]).find(function(x){return String(x.option_id)===String(it.option_id)});return sum+(f?Number(f.qty)||0:0)},0);var remaining=Math.max(0,(Number(it.qty)||0)-used);return remaining>0?{option_id:String(it.option_id||''),display_product_id:String(it.display_product_id||''),qty:remaining}:null}).filter(Boolean);boxes.push({box_no:boxes.length+1,delivery_method:'parcel',ship_date:o.ship_date||'',tracking_no:'',tracking_url:'',status:'draft',note:'',items:newItems});renderBoxes(o)};$('saveBoxesBtn').onclick=function(){var o=detailOrder();if(!o)return;var boxes=collectBoxesFromUi(o);var mismatches=[];(o.items||[]).forEach(function(it){var total=boxes.reduce(function(sum,b){var f=(b.items||[]).find(function(x){return String(x.option_id)===String(it.option_id)});return sum+(f?Number(f.qty)||0:0)},0);if(total!==(Number(it.qty)||0)){var p=productByOpt(it.option_id);mismatches.push((p.thai_name||it.option_id)+': ในออเดอร์ '+(it.qty||0)+' แต่แบ่งลังรวม '+total)}});if(mismatches.length){alert('จำนวนแบ่งลังไม่ตรงกับออเดอร์:\n'+mismatches.join('\n')+'\n\nกรุณาแก้ไขให้ผลรวมเท่ากับจำนวนในออเดอร์ก่อนบันทึก');return}syncBoxesToSupabase(o)};$('saveDetailItems').onclick=async function(){var o=detailOrder();if(!o)return;if(!canEditOrder(o)){toast('ออเดอร์นี้แก้ไขไม่ได้');return}saveDetailAmounts();o=detailOrder();await syncOrderToSupabase(o);renderBoxes(o);toast(remoteReady?'บันทึกการแก้ไขลง Supabase แล้ว':'บันทึกในเครื่องแล้ว / Supabase: '+(remoteError||'ยังไม่พร้อม'))};['detailShipping','detailDiscount'].forEach(function(id){$(id).addEventListener('input',saveDetailAmounts);$(id).addEventListener('change',saveDetailAmounts)});
+$('newTempBtn').onclick=async function(){await fetchOrdersFromSupabase();currentOrder=markPartnerOrder({id:uuid(),order_no:newOrderNo(),status:'TEMP',seller:currentUser.username,sellerCode:currentUser.sellerCode,items:[],price_tier:1,payment_method:'transfer',delivery_method:'parcel',shipping:5000,discount:0,extraIndex:0,bankIndex:0,created_at:new Date().toISOString()});renderQuick();await saveCurrentTemp()};$('saveTempBtn').onclick=saveCurrentTemp;['shipping','discount','extraSelect','bankSelect'].forEach(function(id){var el=$(id);if(!el)return;el.addEventListener('input',function(){calcText();autosaveDraft()});el.addEventListener('change',function(){calcText();autosaveDraft()})});$('refreshHistory').onclick=renderHistory;$('exportOmsBtn').onclick=exportPaidOrdersOMS;$('historySearch').oninput=renderHistory;$('backHistory').onclick=function(){showView('history')};$('detailAddProduct').onclick=function(){openSheet('detail')};$('addBoxBtn').onclick=function(){var o=detailOrder();if(!o)return;var boxes=ensureBoxes(o);var newItems=(o.items||[]).map(function(it){var used=boxes.reduce(function(sum,ob){var f=(ob.items||[]).find(function(x){return String(x.option_id)===String(it.option_id)});return sum+(f?Number(f.qty)||0:0)},0);var remaining=Math.max(0,(Number(it.qty)||0)-used);return remaining>0?{option_id:String(it.option_id||''),display_product_id:String(it.display_product_id||''),qty:remaining}:null}).filter(Boolean);boxes.push({box_no:boxes.length+1,delivery_method:o.delivery_method||'parcel',ship_date:'',tracking_no:'',tracking_url:'',status:'draft',note:'',items:newItems});renderBoxes(o)};document.querySelectorAll('#shipMethodButtons .chip').forEach(function(b){b.onclick=function(){setShipMethod(b.dataset.shipmethod)}});$('autoSplitBtn').onclick=function(){var o=detailOrder();if(!o)return;if(o.boxes&&o.boxes.length&&!confirm('แบ่งลังอัตโนมัติจะเขียนทับข้อมูลลังเดิมทั้งหมด (วันที่ส่ง/หมายเหตุที่กรอกไว้จะหาย) ดำเนินการต่อ?'))return;o.boxes=autoSplitBoxes(o);save('orders',orders);renderBoxes(o);toast('แบ่งลังอัตโนมัติแล้ว: '+o.boxes.length+' ลัง')};$('saveSimpleShipBtn').onclick=function(){var o=detailOrder();if(!o)return;var boxes=ensureBoxes(o);boxes.length=1;var b=boxes[0];b.delivery_method=o.delivery_method||'self';b.ship_date=$('simpleShipDate').value;b.note=$('simpleShipNote').value.trim();b.items=(o.items||[]).map(function(it){return {option_id:String(it.option_id||''),display_product_id:String(it.display_product_id||''),qty:Number(it.qty)||0}});syncBoxesToSupabase(o)};$('saveBoxesBtn').onclick=function(){var o=detailOrder();if(!o)return;var boxes=collectBoxesFromUi(o);var mismatches=[];(o.items||[]).forEach(function(it){var total=boxes.reduce(function(sum,b){var f=(b.items||[]).find(function(x){return String(x.option_id)===String(it.option_id)});return sum+(f?Number(f.qty)||0:0)},0);if(total!==(Number(it.qty)||0)){var p=productByOpt(it.option_id);mismatches.push((p.thai_name||it.option_id)+': ในออเดอร์ '+(it.qty||0)+' แต่แบ่งลังรวม '+total)}});if(mismatches.length){alert('จำนวนแบ่งลังไม่ตรงกับออเดอร์:\n'+mismatches.join('\n')+'\n\nกรุณาแก้ไขให้ผลรวมเท่ากับจำนวนในออเดอร์ก่อนบันทึก');return}syncBoxesToSupabase(o)};$('saveDetailItems').onclick=async function(){var o=detailOrder();if(!o)return;if(!canEditOrder(o)){toast('ออเดอร์นี้แก้ไขไม่ได้');return}saveDetailAmounts();o=detailOrder();await syncOrderToSupabase(o);renderBoxes(o);toast(remoteReady?'บันทึกการแก้ไขลง Supabase แล้ว':'บันทึกในเครื่องแล้ว / Supabase: '+(remoteError||'ยังไม่พร้อม'))};['detailShipping','detailDiscount'].forEach(function(id){$(id).addEventListener('input',saveDetailAmounts);$(id).addEventListener('change',saveDetailAmounts)});
 $('saveDetailTemp').onclick=async function(){var o=collectDetail();if(!o)return;markPartnerOrder(o);o.status='TEMP';o.updated_at=new Date().toISOString();save('orders',orders);await syncOrderToSupabase(o);fillDetail(o);toast(remoteReady?'บันทึก TEMP ลง Supabase แล้ว':'บันทึก TEMP ในเครื่องแล้ว / Supabase: '+(remoteError||'ยังไม่พร้อม'))};$('completeOrder').onclick=async function(){var o=collectDetail();if(!o)return;if((o.items||[]).length===0){toast('ยังไม่มีสินค้าในออเดอร์');return}if(o.payment_method==='transfer'&&!o.payment_amount){if(!confirm('ยังไม่ได้กรอกยอดโอน ต้องการบันทึกเป็น PAID ไหม?'))return}if(o.payment_method==='credit'&&!o.payment_amount){o.payment_amount=0}if(o.payment_method==='cash'&&!o.payment_amount){o.payment_amount=orderTotal(o)}markPartnerOrder(o);o.status='PAID';o.paid_at=new Date().toISOString();save('orders',orders);await syncOrderToSupabase(o);fillDetail(o);toast(remoteReady?'บันทึกเป็น PAID ลง Supabase แล้ว':'บันทึกในเครื่องแล้ว / Supabase: '+(remoteError||'ยังไม่พร้อม'))};function copyDetailCustomerMessage(lang){var o=collectDetail();if(!o)return;markPartnerOrder(o);save('orders',orders);syncOrderToSupabase(o);openMessagePopup(lang,o)}$('copyDetailTh').onclick=function(){copyDetailCustomerMessage('th')};$('copyDetailKo').onclick=function(){copyDetailCustomerMessage('ko')};$('cancelOrderBtn').onclick=function(){cancelOrder(editingId);showView('history')};$('trackingBaseDetail').oninput=function(){var o=orders.find(function(x){return x.id===editingId});$('trackingLink').value=makeTracking(this.value,o?o.order_no:'')};$('addrApi').onclick=function(){if(window.daum&&daum.Postcode){new daum.Postcode({oncomplete:function(data){$('zipcode').value=data.zonecode;$('address').value=data.roadAddress||data.jibunAddress}}).open()}else toast('Daum Postcode ยังโหลดไม่สำเร็จ')};
 $('ocrImage').onchange=function(){var f=this.files&&this.files[0];if(!f)return;var r=new FileReader();r.onload=function(){ocrImageData=r.result;$('ocrPreview').src=r.result;$('ocrPreview').classList.remove('hide')};r.readAsDataURL(f)};$('parseOcr').onclick=function(){parseTextToFields($('ocrText').value)};$('ocrAuto').onclick=function(){runAiOcr('auto')};$('ocrSlip').onclick=function(){runAiOcr('slip')};$('ocrAddress').onclick=function(){runAiOcr('address')};
 $('saveSupabase').onclick=async function(){localStorage.setItem(LS+'supabase_url',$('supabaseUrl').value.trim());localStorage.setItem(LS+'supabase_key',$('supabaseKey').value.trim());await testSupabaseConnection();await fetchOrdersFromSupabase();toast('บันทึก Supabase แล้ว')};$('testSupabase').onclick=testSupabaseConnection;$('copySql').onclick=function(){if($('sqlBox'))$('sqlBox').classList.toggle('hide');navigator.clipboard&&navigator.clipboard.writeText(SETUP_SQL).then(function(){toast('คัดลอก SQL แล้ว')})};$('loadProducts').onclick=loadFromSupabase;$('saveProducts').onclick=async function(){document.querySelectorAll('#productEditList .prodEdit').forEach(function(d,i){products[i].thai_name=d.querySelector('.tn').value.trim();products[i].kr_name=d.querySelector('.kn').value.trim();products[i].pick_name=products[i].kr_name;products[i].price_t1=Number(d.querySelector('.p1').value)||0;products[i].price_t2=Number(d.querySelector('.p2').value)||0;products[i].price_t3=Number(d.querySelector('.p3').value)||0;products[i].price_t4=Number(d.querySelector('.p4').value)||0;products[i].price_t5=Number(d.querySelector('.p5').value)||0;products[i].price_t6=Number(d.querySelector('.p6').value)||0;products[i].page_price=products[i].price_t1;products[i].pieces_per_box=Number(d.querySelector('.pb').value)||0;products[i].active=d.querySelector('.ac').value});save('products',products);await saveProductAliasesToSupabase();renderProductSheet();toast('บันทึกสินค้าแล้ว')};if($('saveExtras'))$('saveExtras').onclick=function(){extras=[];save('extras',extras);renderExtras();calcText();toast('บันทึกข้อความเสริมแล้ว')};$('saveBanks').onclick=function(){banks=parseBanks($('bankAccounts').value);if(!banks.length)banks=defaultBanks;save('banks',banks);renderBankSelect();calcText();toast('บันทึกบัญชีธนาคารแล้ว')};$('addUser').onclick=function(){users.push({username:'new_user',password:'1234',display_name:'',sellerCode:'99',gender:'female',tone:'ค่ะ',message_style:'ค่ะ',role:'seller',active:true});renderUsers()};$('saveUsers').onclick=saveUsersToSupabase;$('saveOcr').onclick=function(){localStorage.setItem(LS+'ocr_endpoint',$('ocrEndpoint').value.trim());localStorage.setItem(LS+'ocr_key',$('ocrKey').value.trim());toast('บันทึก AI OCR แล้ว')};$('saveTracking').onclick=function(){localStorage.setItem(LS+'tracking_base',$('trackingBase').value.trim());toast('บันทึก Tracking แล้ว')};document.querySelectorAll('#logout,[id=logout]').forEach(function(b){b.onclick=function(){location.reload()}});
