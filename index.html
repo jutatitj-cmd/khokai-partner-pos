@@ -561,7 +561,7 @@ function orderItemLine(it,lang){
   var qty=Number(it.qty)||0;
   var price=Number(it.price)||0;
   var line=qty*price;
-  return '• '+itemNameByLang(p,lang)+' 1kg x '+qty+' = '+money(line).replace(' วอน', lang==='ko'?'원':' วอน');
+  return '• '+itemNameByLang(p,lang)+' x '+qty+' = '+money(line).replace(' วอน', lang==='ko'?'원':' วอน');
 }
 function orderTrackingLink(o){
   var base=localStorage.getItem(LS+'tracking_base')||'';
@@ -577,7 +577,7 @@ function buildCustomerMessage(o,lang){
   if(lang==='ko'){
     txt+='주문 확인드립니다.\n\n';
     items.forEach(function(it){txt+=itemLine(it,'ko')+'\n';});
-    if(Number(o.shipping)||0)txt+='\n배송비 '+money(o.shipping).replace(' วอน','원')+'\n';
+    txt+='\n배송비 '+money(o.shipping||0).replace(' วอน','원')+'\n';
     if(Number(o.discount)||0)txt+='할인 -'+money(o.discount).replace(' วอน','원')+'\n';
     txt+='\n총 입금금액 '+money(total).replace(' วอน','원')+'입니다.\n\n';
     if(o.payment_method==='transfer'){
@@ -593,11 +593,11 @@ function buildCustomerMessage(o,lang){
   }
   txt+='สรุปออเดอร์ '+o.order_no+(tone?' '+tone:'')+'\n\n';
   items.forEach(function(it){txt+=itemLine(it,'th')+'\n';});
-  if(Number(o.shipping)||0)txt+='\nค่าส่ง '+money(o.shipping)+'\n';
+  txt+='\nค่าส่ง '+money(o.shipping||0)+'\n';
   if(Number(o.discount)||0)txt+='ส่วนลด -'+money(o.discount)+'\n';
   txt+='\nรวมยอดโอน '+money(total)+(tone?' '+tone:'')+'\n\n';
   if(o.payment_method==='transfer'){
-    txt+='โอนแล้ว รบกวนแจ้งสลิป เพื่อทำการจัดส่งสินค้า';
+    txt+='โอนแล้ว รบกวนแจ้งสลิป เพื่อทำการจัดส่งสินค้า'+(tone?' '+tone:'');
     var bt=bankText(o.bankIndex);if(bt)txt+='\n\n'+bt;
   }else if(o.payment_method==='cash'){
     txt+='รับชำระเป็นเงินสด'+(tone?' '+tone:'');
@@ -618,7 +618,7 @@ function buildPaidCustomerMessage(o,lang){
     var ko='결제 확인되었습니다 ('+o.order_no+').\n\n';
     items.forEach(function(it){ko+=orderItemLine(it,'ko')+'\n'});
     ko+='\n상품 금액 '+money(subtotal).replace(' วอน','원')+'\n';
-    if(Number(o.shipping)||0)ko+='배송비 '+money(o.shipping).replace(' วอน','원')+'\n';
+    ko+='배송비 '+money(o.shipping||0).replace(' วอน','원')+'\n';
     if(Number(o.discount)||0)ko+='할인 -'+money(o.discount).replace(' วอน','원')+'\n';
     ko+='총 결제금액 '+money(total).replace(' วอน','원')+'\n';
     ko+='\n✅ 입금 확인 '+money(o.payment_amount||total).replace(' วอน','원')+'\n';
@@ -635,7 +635,7 @@ function buildPaidCustomerMessage(o,lang){
   var th='สรุปออเดอร์ '+o.order_no+(tone?' '+tone:'')+'\n\n';
   items.forEach(function(it){th+=orderItemLine(it,'th')+'\n'});
   th+='\nค่าสินค้า '+money(subtotal)+'\n';
-  if(Number(o.shipping)||0)th+='ค่าส่ง '+money(o.shipping)+'\n';
+  th+='ค่าส่ง '+money(o.shipping||0)+'\n';
   if(Number(o.discount)||0)th+='ส่วนลด -'+money(o.discount)+'\n';
   th+='ยอดรวม '+money(total)+'\n';
   th+='\n✅ ชำระแล้ว '+money(o.payment_amount||total)+'\n';
