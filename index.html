@@ -1330,14 +1330,16 @@ function shipmentsForShipDate(o,shipDate){
 }
 function orderRowsForOms(o,shipments){
   var rows=[];
+  var multiBox=orderShipments(o).length>1;
   (shipments||orderShipments(o)).forEach(function(s){
     var addr=(s.address||'').trim(); if(s.shipping_memo)addr += ' ('+s.shipping_memo+')';
+    var bundleNo=multiBox?(o.order_no+'-B'+(s.box_no||1)):(o.order_no||'');
     (s.items||[]).forEach(function(it){
       var p=productByOpt(it.option_id);
       rows.push([
         o.channel||'Partner POS',
         o.order_no||'',
-        o.order_no||'',
+        bundleNo,
         s.receiver_name||o.customer_name||'',
         s.receiver_phone||'',
         s.zipcode||'',
