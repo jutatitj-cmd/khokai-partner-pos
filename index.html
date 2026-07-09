@@ -1316,6 +1316,7 @@ async function loginFromSupabase(username,password){
     var r=await sb.from('khokai_pos_users').select('*').eq('username',username).eq('password',password).eq('active',true).limit(1).maybeSingle();
     if(r.error)throw r.error;
     if(!r.data)return null;
+    if(r.data.role==='packing')return null; // packing-department accounts are for KHOKAI Pack only
     await sb.from('khokai_pos_users').update({last_login:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('username',username);return {username:r.data.username,password:r.data.password||'',display_name:r.data.display_name||r.data.full_name||r.data.username,sellerCode:r.data.seller_code||r.data.sellerCode||'00',gender:r.data.gender||'male',tone:r.data.tone||r.data.message_style||'ครับ',role:r.data.role||'seller'};
   }catch(e){console.warn('Supabase user login failed',e);return null}
 }
