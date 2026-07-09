@@ -627,7 +627,8 @@ function orderItemLine(it,lang){
   var qty=Number(it.qty)||0;
   var price=Number(it.price)||0;
   var line=qty*price;
-  return '• '+itemNameByLang(p,lang)+' x '+qty+' = '+money(line).replace(' วอน', lang==='ko'?'원':' วอน');
+  var cur=lang==='ko'?'원':' วอน';
+  return '• '+itemNameByLang(p,lang)+' '+money(price).replace(' วอน',cur)+' x '+qty+' = '+money(line).replace(' วอน',cur);
 }
 function orderTrackingLink(o){
   var base=localStorage.getItem(LS+'tracking_base')||'';
