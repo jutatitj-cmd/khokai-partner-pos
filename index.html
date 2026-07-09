@@ -455,7 +455,8 @@ function ensureBoxes(o){
   o.boxes.forEach(function(b,i){b.box_no=Number(b.box_no)||i+1;b.delivery_method=b.delivery_method||'parcel';if(!Array.isArray(b.items))b.items=[];b.receiver_name=b.receiver_name||'';b.receiver_phone=b.receiver_phone||'';b.address=b.address||'';b.zipcode=b.zipcode||''});
   return o.boxes;
 }
-function boxShipment(o,b,idx){
+function boxShipment(o,b,idx,defaultShip){
+  defaultShip=defaultShip||{};
   return {
     box_no:b.box_no||idx+1,
     receiver_name:(b.receiver_name||'').trim()||o.receiver_name||o.customer_name||'',
@@ -463,12 +464,19 @@ function boxShipment(o,b,idx){
     zipcode:(b.zipcode||'').trim()||o.zipcode||'',
     address:(b.address||'').trim()||o.address||'',
     shipping_memo:o.shipping_memo||'',
-    ship_date:b.ship_date||'',
+    ship_date:b.ship_date||defaultShip.ship_date||'',
     items:b.items||[]
   };
 }
+// ship_date (set via the "ลัง 1" address-tab card, same as address/receiver) only ever gets
+// written onto box[0] — unlike address/receiver it has no order-level field to fall back to, so
+// without this, any box left untouched has no ship_date and silently drops out of the OMS export
+// whenever it's filtered by ship date (confirmed live: order 260709-01014, 8 boxes, only box 1
+// had ship_date set — OMS export with today's date filter showed exactly 1 row instead of 8).
 function orderShipments(o){
-  return ensureBoxes(o).map(function(b,i){return boxShipment(o,b,i)});
+  var boxes=ensureBoxes(o);
+  var defaultShip=boxes[0]||{};
+  return boxes.map(function(b,i){return boxShipment(o,b,i,defaultShip)});
 }
 function shipmentsDiffer(shipments){
   if(shipments.length<=1)return false;
@@ -517,7 +525,8 @@ function renderBoxes(o){
       return '<div class="boxItem"><div><b>'+escapeHtml(p.thai_name||it.name||'สินค้า')+'</b><div class="mini">ในออเดอร์ '+(it.qty||0)+' ถุง · เหลือให้แบ่ง <span'+remCls+'>'+remaining+'</span> ถุง</div></div><input class="boxQty" data-opt="'+escapeAttr(it.option_id)+'" data-display="'+escapeAttr(it.display_product_id||p.display_product_id||'')+'" type="number" inputmode="numeric" value="'+q+'"></div>';
     }).join('') || '<div class="mini">ยังไม่มีสินค้าในออเดอร์</div>';
     var addrLine=(b.receiver_name||b.receiver_phone||b.address)?'📍 '+escapeHtml(b.receiver_name||'')+(b.receiver_phone?' · '+escapeHtml(b.receiver_phone):'')+(b.address?' · '+escapeHtml(b.address):''):'📍 ใช้ที่อยู่หลักของออเดอร์';
-    var shipLine='🚚 '+(b.ship_date?escapeHtml(b.ship_date):'ยังไม่ระบุวันที่ส่ง')+(b.note?' · '+escapeHtml(b.note):'');
+    var fallbackShipDate=(boxes[0]||{}).ship_date||'';
+    var shipLine='🚚 '+(b.ship_date?escapeHtml(b.ship_date):(bi>0&&fallbackShipDate?escapeHtml(fallbackShipDate)+' (ใช้วันที่ลัง 1)':'ยังไม่ระบุวันที่ส่ง'))+(b.note?' · '+escapeHtml(b.note):'');
     var summary='<div class="mini">'+addrLine+'</div><div class="mini">'+shipLine+' <span class="mini" style="opacity:.7">(แก้ที่การ์ดข้อมูลลูกค้า/จัดส่ง)</span></div>';
     card.innerHTML='<div class="boxHead"><div class="boxTitle">ลัง '+(bi+1)+'</div><select class="boxMethod"><option value="parcel">📦 택배</option><option value="self">🚚 ส่งเอง</option></select><button class="btn danger small delBox">ลบ</button></div>'+summary+'<div class="hide"><label class="label">เลขพัสดุ</label><input class="boxTrack" value="'+escapeAttr(b.tracking_no||'')+'"></div>'+itemRows;
     box.appendChild(card);
