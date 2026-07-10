@@ -357,7 +357,7 @@ function renderBankSelect(){var sel=$('bankSelect');if(!sel)return;sel.innerHTML
 function bankText(idx){var b=banks[Number(idx)||0]||banks[0];return b&&b.text?b.text:''}
 function parseBanks(raw){return String(raw||'').split(/\n\s*\n/).map(function(block){var lines=block.split(/\n/).map(function(x){return x.trim()}).filter(Boolean);return lines.length?{label:lines[0],text:lines.join('\n')}:null}).filter(Boolean)}
 function calcText(){if(!currentOrder)return '';currentOrder.shipping=Number($('shipping').value)||0;currentOrder.discount=Number($('discount').value)||0;currentOrder.extraIndex=$('extraSelect')?Number($('extraSelect').value):-1;currentOrder.bankIndex=Number($('bankSelect')?$('bankSelect').value:0);var tone=currentUser.tone||'';var lines=currentOrder.items||[];var total=orderTotal(currentOrder);$('total').textContent=money(total);$('itemCount').textContent=lines.length+' รายการ';var txt=buildCustomerMessage(currentOrder,'th');return txt}
-async function showView(v){if(v==='settings'&&!isAdmin()){toast('เมนูตั้งค่าใช้ได้เฉพาะ admin');v='quick'}currentView=v;['Quick','History','Detail','Dashboard','Settings'].forEach(function(n){$('view'+n).classList.add('hide')});var map={quick:'Quick',history:'History',detail:'Detail',dashboard:'Dashboard',settings:'Settings'};$('view'+map[v]).classList.remove('hide');document.querySelectorAll('.navbtn').forEach(function(b){b.classList.toggle('active',b.dataset.view===v)});$('fab').classList.toggle('hide',v!=='quick');if(v==='history'){await fetchOrdersFromSupabase();renderHistory()}if(v==='dashboard'){await fetchOrdersFromSupabase();renderDashboard()}if(v==='settings')renderSettings();closeDrawer()}
+async function showView(v){if(v==='settings'&&!isAdmin()){toast('เมนูตั้งค่าใช้ได้เฉพาะ admin');v='quick'}currentView=v;['Quick','History','Detail','Dashboard','Settings'].forEach(function(n){$('view'+n).classList.add('hide')});var map={quick:'Quick',history:'History',detail:'Detail',dashboard:'Dashboard',settings:'Settings'};$('view'+map[v]).classList.remove('hide');document.querySelectorAll('.navbtn').forEach(function(b){b.classList.toggle('active',b.dataset.view===v)});$('fab').classList.toggle('hide',v!=='quick');if(v==='history'){await fetchOrdersFromSupabase();renderHistory()}if(v==='dashboard'){await renderDashboard()}if(v==='settings')renderSettings();closeDrawer()}
 function statusClass(st){st=String(st||'TEMP');if(st==='PAID'||st==='COMPLETED'||st==='SHIPPED')return 'paid';if(st==='CANCELLED')return 'cancel';return ''}
 function statusLabel(st){if(st==='COMPLETED')return 'PAID';return st||'TEMP'}
 function canEditOrder(o){var st=String((o&&o.status)||'TEMP');return st!=='SHIPPED'&&st!=='CANCELLED'}
@@ -755,67 +755,91 @@ function customerMessageByStatus(o,lang){
 function closeMessage(o,lang){return customerMessageByStatus(o,lang||'th')}
 function openMessagePopup(lang,o){o=o||currentOrder;ensureOrder();var txt=customerMessageByStatus(o,lang||'th');$('messageModalTitle').textContent=(lang==='ko'?'🇰🇷 ข้อความเกาหลี':'🇹🇭 ข้อความไทย');$('messageModalText').textContent=txt;$('messageModal').classList.add('show');$('copyMessageModal').onclick=function(){navigator.clipboard&&navigator.clipboard.writeText(txt).then(function(){toast('คัดลอกแล้ว')})}}
 function closeMessagePopup(){$('messageModal').classList.remove('show')}
-function renderDashboard(){
-  var by={}, byShip={};
-  function cleanShipDate(v){
-    v=String(v||'').trim();
-    if(!v)return '';
-    var m=v.match(/^(20[0-9]{2})[-.\/](0?[1-9]|1[0-2])[-.\/](0?[1-9]|[12][0-9]|3[01])/);
-    if(m)return m[1]+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[3]).padStart(2,'0');
-    return v.slice(0,10);
-  }
-  var missingShipDate=0, eligibleOrders=0;
-  orders.forEach(function(o){
-    var u=o.seller||'-';
+var dashOrders=null, dashMonth='', DASH_MODULE='partner_pos';
+// จัดกลุ่มออเดอร์เป็น 3 กลุ่มใหญ่: Facebook (ปลีกที่ไม่ใช่ Coupang) / Coupang / Partner POS (ราคาส่ง)
+function saleGroup(o){
+  if(String(o.order_module||'')==='partner_pos')return 'Partner POS';
+  var ch=String(o.channel||'').toLowerCase();
+  if(ch==='coupang'||o.coupang_bundle_no)return 'Coupang';
+  return 'Facebook';
+}
+// ดึงออเดอร์ทั้ง mini_pos + partner_pos สำหรับหน้าสรุป (ไม่แตะ orders หลักของแอป)
+async function fetchAllOrdersForDashboard(){
+  var sb=sbClient(); if(!sb)return (orders||[]).slice();
+  try{
+    var r=await sb.from(ORDER_TABLE).select('*').in('order_module',['mini_pos','partner_pos']).order('created_at',{ascending:false}).limit(1000);
+    if(r.error)throw r.error;
+    return (r.data||[]).map(function(x){var o=x.payload||x;if(!o.order_module&&x.order_module)o.order_module=x.order_module;if(!o.channel&&x.channel)o.channel=x.channel;if(!o.ship_date&&x.ship_date)o.ship_date=x.ship_date;if(!o.payment_date&&x.payment_date)o.payment_date=x.payment_date;if(!o.coupang_bundle_no&&x.coupang_bundle_no)o.coupang_bundle_no=x.coupang_bundle_no;if(!o.created_at&&x.created_at)o.created_at=x.created_at;return o;});
+  }catch(e){console.warn('dashboard fetch failed',e);return (orders||[]).slice();}
+}
+async function renderDashboard(){ dashOrders=await fetchAllOrdersForDashboard(); paintDashboard(); }
+function paintDashboard(){
+  var all=dashOrders||[];
+  function cleanShipDate(v){v=String(v||'').trim();if(!v)return '';var m=v.match(/^(20[0-9]{2})[-.\/](1[0-2]|0?[1-9])[-.\/](3[01]|[12][0-9]|0?[1-9])/);if(m)return m[1]+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[3]).padStart(2,'0');return v.slice(0,10);}
+  function shipOf(o){return cleanShipDate((typeof orderShipDates==='function'?(orderShipDates(o)||[])[0]:'')||o.ship_date||o.shipping_date||o.delivery_date||o.shipped_at||o.shipping_at);}
+  function saleOf(o){return cleanShipDate(o.payment_date||o.created_at||o.updated_at);}
+  var GROUPS=['Facebook','Coupang','Partner POS'];
+  var byDay={}, seller={};
+  all.forEach(function(o){
     var st=String(o.status||'TEMP').toUpperCase();
-    if(!by[u])by[u]={count:0,temp:0,paid:0,cancel:0,total:0};
-    by[u].count++;
-    if(st==='PAID'||st==='COMPLETED'||st==='SHIPPED')by[u].paid++;
-    else if(st==='CANCELLED')by[u].cancel++;
-    else by[u].temp++;
-    if(st!=='CANCELLED')by[u].total+=orderTotal(o);
-
-    var sd=cleanShipDate(orderShipDates(o)[0]||o.ship_date||o.shipping_date||o.delivery_date||o.shipped_at||o.shipping_at);
-    if(st==='PAID'||st==='COMPLETED'||st==='SHIPPED'){
-      eligibleOrders++;
-      if(!sd){missingShipDate++;return}
-      if(!byShip[sd])byShip[sd]={orders:0,items:0,total:0,paid:0,shipped:0,channels:{},products:{}};
-      byShip[sd].orders++;
-      byShip[sd].total+=orderTotal(o);
-      byShip[sd].items+=(o.items||[]).reduce(function(a,it){return a+(Number(it.qty)||0)},0);
-      if(st==='SHIPPED'||st==='COMPLETED')byShip[sd].shipped++;else byShip[sd].paid++;
-      var ch=o.channel||'ไม่ระบุช่องทาง';
-      byShip[sd].channels[ch]=(byShip[sd].channels[ch]||0)+orderTotal(o);
-      (o.items||[]).forEach(function(it){
-        var p=productByOpt(it.option_id)||{};
-        var did=String(it.display_product_id||p.display_product_id||'NO_DISPLAY').trim()||'NO_DISPLAY';
-        var qty=Number(it.qty)||0;
-        var line=qty*(Number(it.price)||Number(p.page_price)||Number(p.price)||0);
-        if(!byShip[sd].products[did])byShip[sd].products[did]={display_product_id:did,name:(p.thai_name||it.name||p.kr_name||did),qty:0,sales:0,orders:{}};
-        byShip[sd].products[did].qty+=qty;
-        byShip[sd].products[did].sales+=line;
-        byShip[sd].products[did].orders[o.order_no||o.id]=true;
-      });
+    if(String(o.order_module||'mini_pos')===DASH_MODULE){
+      var u=o.seller||'-';
+      if(!seller[u])seller[u]={count:0,temp:0,paid:0,cancel:0,total:0};
+      seller[u].count++;
+      if(st==='PAID'||st==='COMPLETED'||st==='SHIPPED')seller[u].paid++;else if(st==='CANCELLED')seller[u].cancel++;else seller[u].temp++;
+      if(st!=='CANCELLED')seller[u].total+=orderTotal(o);
     }
+    if(st!=='PAID'&&st!=='COMPLETED'&&st!=='SHIPPED')return;
+    var day=shipOf(o), kind='ship'; if(!day){day=saleOf(o);kind='sale';}
+    if(!day)return;
+    if(!byDay[day])byDay[day]={orders:0,items:0,total:0,paid:0,shipped:0,fallback:0,groups:{},products:{}};
+    var d=byDay[day];
+    d.orders++; d.total+=orderTotal(o);
+    d.items+=(o.items||[]).reduce(function(a,it){return a+(Number(it.qty)||0)},0);
+    if(st==='SHIPPED'||st==='COMPLETED')d.shipped++;else d.paid++;
+    if(kind==='sale')d.fallback++;
+    var g=saleGroup(o);
+    if(!d.groups[g])d.groups[g]={total:0,orders:0};
+    d.groups[g].total+=orderTotal(o); d.groups[g].orders++;
+    (o.items||[]).forEach(function(it){
+      var p=productByOpt(it.option_id)||{};
+      var did=String(it.display_product_id||p.display_product_id||'NO_DISPLAY').trim()||'NO_DISPLAY';
+      var qty=Number(it.qty)||0;
+      var line=qty*(Number(it.price)||Number(p.page_price)||Number(p.price)||0);
+      var nm=p.thai_name||it.name||p.kr_name||did;
+      if(!d.products[did])d.products[did]={name:nm,qty:0,sales:0,orders:{}};
+      else if(nm&&nm.length<d.products[did].name.length)d.products[did].name=nm;
+      d.products[did].qty+=qty; d.products[did].sales+=line; d.products[did].orders[o.order_no||o.id]=true;
+    });
   });
-  var daily=Object.keys(byShip).sort().reverse().map(function(d){
-    var x=byShip[d];
-    var ch=Object.keys(x.channels).sort().map(function(k){return escapeHtml(k)+' '+money(x.channels[k])}).join(' · ');
-    var prod=Object.keys(x.products||{}).sort(function(a,b){return (x.products[b].qty||0)-(x.products[a].qty||0)}).map(function(k){
-      var pr=x.products[k];
-      var orderCount=Object.keys(pr.orders||{}).length;
-      return '<div class="mini" style="display:flex;justify-content:space-between;gap:8px;border-top:1px dashed #e5e7eb;padding-top:5px;margin-top:5px"><span><b>'+escapeHtml(pr.name||k)+'</b><br><span class="muted">Display '+escapeHtml(k)+' · '+orderCount+' ออเดอร์</span></span><span style="text-align:right;white-space:nowrap">'+(pr.qty||0)+' ชิ้น<br>'+money(pr.sales||0)+'</span></div>';
-    }).join('');
-    return '<div class="histCard" style="display:block"><div style="display:flex;justify-content:space-between;gap:10px"><div><div class="histNo">'+escapeHtml(d)+'</div><div class="mini">ออเดอร์ '+x.orders+' · สินค้า '+x.items+' ชิ้น · รอส่ง '+x.paid+' · ส่งแล้ว '+x.shipped+'</div><div class="mini">'+(ch||'-')+'</div></div><div class="histAmt">'+money(x.total)+'</div></div><div style="margin-top:8px">'+(prod||'<div class="mini muted">ไม่มีรายการสินค้า</div>')+'</div></div>';
+  var allDays=Object.keys(byDay).sort().reverse();
+  var monthsSet={}; allDays.forEach(function(k){monthsSet[k.slice(0,7)]=true;});
+  var months=Object.keys(monthsSet).sort().reverse();
+  if(dashMonth&&months.indexOf(dashMonth)<0)dashMonth='';
+  var scopeDays=dashMonth?allDays.filter(function(k){return k.slice(0,7)===dashMonth;}):allDays.slice(0,5);
+  var thM=['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  function monthLabel(ym){var p=ym.split('-');return (thM[Number(p[1])]||p[1])+' '+p[0];}
+  var monthOpts='<option value="">5 วันล่าสุด</option>'+months.map(function(m){return '<option value="'+m+'"'+(m===dashMonth?' selected':'')+'>'+monthLabel(m)+'</option>';}).join('');
+  var scopeGroups={}, scopeTotal=0, scopeOrders=0;
+  scopeDays.forEach(function(k){var d=byDay[k];scopeTotal+=d.total;scopeOrders+=d.orders;GROUPS.forEach(function(g){if(d.groups[g]){if(!scopeGroups[g])scopeGroups[g]={total:0,orders:0};scopeGroups[g].total+=d.groups[g].total;scopeGroups[g].orders+=d.groups[g].orders;}});});
+  var groupCards=GROUPS.map(function(g){var v=scopeGroups[g]||{total:0,orders:0};return '<div class="histCard"><div><b>'+g+'</b><div class="mini">'+v.orders+' ออเดอร์</div></div><div class="histAmt">'+money(v.total)+'</div></div>';}).join('');
+  var daily=scopeDays.map(function(dkey){
+    var x=byDay[dkey];
+    var gline=GROUPS.filter(function(g){return x.groups[g];}).map(function(g){return escapeHtml(g)+' '+money(x.groups[g].total);}).join(' · ');
+    var prod=Object.keys(x.products||{}).sort(function(a,b){return (x.products[b].qty||0)-(x.products[a].qty||0);}).map(function(k){var pr=x.products[k];var orderCount=Object.keys(pr.orders||{}).length;return '<div class="mini" style="display:flex;justify-content:space-between;gap:8px;border-top:1px dashed #e5e7eb;padding-top:5px;margin-top:5px"><span><b>'+escapeHtml(pr.name||k)+'</b><br><span class="muted">Display '+escapeHtml(k)+' · '+orderCount+' ออเดอร์</span></span><span style="text-align:right;white-space:nowrap">'+(pr.qty||0)+' ชิ้น<br>'+money(pr.sales||0)+'</span></div>';}).join('');
+    var fb=x.fallback?' · <span style="color:#d97706">อิงวันที่ขาย '+x.fallback+'</span>':'';
+    return '<div class="histCard" style="display:block"><div style="display:flex;justify-content:space-between;gap:10px"><div><div class="histNo">'+escapeHtml(dkey)+'</div><div class="mini">ออเดอร์ '+x.orders+' · สินค้า '+x.items+' ชิ้น · รอส่ง '+x.paid+' · ส่งแล้ว '+x.shipped+fb+'</div><div class="mini">'+(gline||'-')+'</div></div><div class="histAmt">'+money(x.total)+'</div></div><div style="margin-top:8px">'+(prod||'<div class="mini muted">ไม่มีรายการสินค้า</div>')+'</div></div>';
   }).join('');
-  if(!daily){
-    daily='<div class="mutedBox mini">ยังไม่มีข้อมูลยอดขายตามวันจัดส่ง<br>ต้องมีออเดอร์สถานะ PAID/SHIPPED และกรอกวันจัดส่ง</div>';
-  }
-  if(missingShipDate){
-    daily='<div class="mutedBox mini">มีออเดอร์ PAID/SHIPPED ที่ยังไม่กรอกวันจัดส่ง '+missingShipDate+' ออเดอร์</div>'+daily;
-  }
-  var seller=Object.keys(by).map(function(u){var x=by[u];return '<div class="histCard"><div><b>'+escapeHtml(u)+'</b><div class="mini">ทั้งหมด '+x.count+' · PAID '+x.paid+' · TEMP '+x.temp+' · ยกเลิก '+x.cancel+'</div></div><div class="histAmt">'+money(x.total)+'</div></div>'}).join('')||'<div class="mutedBox mini">ยังไม่มีข้อมูล</div>';
-  $('dashboard').innerHTML='<div class="sectionTitle">ยอดขายรายวันตามวันจัดส่ง</div>'+daily+'<div class="sectionTitle" style="margin-top:14px">สรุปตามผู้ขาย</div>'+seller;
+  if(!daily)daily='<div class="mutedBox mini">ยังไม่มีข้อมูลยอดขายในช่วงนี้</div>';
+  var sellerHtml=Object.keys(seller).map(function(u){var x=seller[u];return '<div class="histCard"><div><b>'+escapeHtml(u)+'</b><div class="mini">ทั้งหมด '+x.count+' · PAID '+x.paid+' · TEMP '+x.temp+' · ยกเลิก '+x.cancel+'</div></div><div class="histAmt">'+money(x.total)+'</div></div>';}).join('')||'<div class="mutedBox mini">ยังไม่มีข้อมูล</div>';
+  var scopeLabel=dashMonth?('เดือน '+monthLabel(dashMonth)):'5 วันล่าสุด';
+  $('dashboard').innerHTML=
+    '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px"><div class="sectionTitle" style="margin:0">ยอดตามกลุ่มช่องทาง ('+escapeHtml(scopeLabel)+')</div><select id="dashMonth" style="padding:8px 10px;border:1px solid #ddd;border-radius:10px;font-size:13px">'+monthOpts+'</select></div>'+
+    groupCards+
+    '<div class="histCard" style="background:#f0fdf4;border:1px solid #bbf7d0"><div><b>รวมทั้งหมด</b><div class="mini">'+scopeOrders+' ออเดอร์</div></div><div class="histAmt">'+money(scopeTotal)+'</div></div>'+
+    '<div class="sectionTitle" style="margin-top:14px">ยอดขายรายวัน</div>'+daily+
+    '<div class="sectionTitle" style="margin-top:14px">สรุปตามผู้ขาย ('+DASH_MODULE+')</div>'+sellerHtml;
+  var sel=document.getElementById('dashMonth');if(sel){sel.value=dashMonth;sel.onchange=function(){dashMonth=this.value;paintDashboard();};}
 }
 function renderSettings(){ $('supabaseUrl').value=localStorage.getItem(LS+'supabase_url')||DEFAULT_SUPABASE_URL;$('supabaseKey').value=localStorage.getItem(LS+'supabase_key')||DEFAULT_SUPABASE_ANON_KEY;$('trackingBase').value=localStorage.getItem(LS+'tracking_base')||'';$('ocrEndpoint').value=localStorage.getItem(LS+'ocr_endpoint')||'';$('ocrKey').value=localStorage.getItem(LS+'ocr_key')||'';$('bankAccounts').value=banks.map(function(b){return b.text}).join('\n\n');renderProductEdits();renderUsers();if(remoteReady){fetchUsersFromSupabase().then(function(){renderUsers()})}}
 function krDisplay(p){var fields=['product_name_kr','product_name','seller_product_name','display_product_name','상품명','제품명','batch_name','name','option_name_kr','option_name','packing_name'];var vals=[];fields.forEach(function(k){if(p[k]!=null&&String(p[k]).trim()){var v=String(p[k]).trim();if(vals.indexOf(v)<0)vals.push(v)}});return vals.slice(0,3).join(' / ') || p.kr_name || ''}
@@ -826,7 +850,7 @@ function openSheet(target){productSheetTarget=target||'quick';renderProductSheet
 function closeSheet(){$('productSheet').classList.remove('show');$('sheetBackdrop').classList.remove('show');$('productSearch').value=''}
 function openDrawer(){$('drawer').classList.add('show')}function closeDrawer(){$('drawer').classList.remove('show')}
 function escapeHtml(s){return String(s||'').replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})}function escapeAttr(s){return escapeHtml(s).replace(/"/g,'&quot;')}
-function parseTextToFields(t){t=t||'';var amt=(t.match(/([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{4,})\s*(?:원|วอน)?/)||[])[1];var phone=(t.match(/01[016789][-\s]?[0-9]{3,4}[-\s]?[0-9]{4}/)||[])[0];var time=(t.match(/([01]?\d|2[0-3])[:.]([0-5]\d)/)||[]);if(amt&&!$('payAmount').value)$('payAmount').value=amt.replace(/,/g,'');if(phone&&!$('receiverPhone').value)$('receiverPhone').value=phone.replace(/[^0-9]/g,'');if(time&&!$('payTime').value)$('payTime').value=time[1].padStart(2,'0')+':'+time[2];var date=(t.match(/(20[0-9]{2})[-.\/년 ]+(0?[1-9]|1[0-2])[-.\/월 ]+(0?[1-9]|[12][0-9]|3[01])/ )||[]);if(date&&!$('payDate').value)$('payDate').value=date[1]+'-'+String(date[2]).padStart(2,'0')+'-'+String(date[3]).padStart(2,'0');var zip=(t.match(/\b[0-9]{5}\b/)||[])[0];if(zip&&!$('zipcode').value)$('zipcode').value=zip;var lines=t.split(/\n/).map(function(x){return x.trim()}).filter(Boolean);var addr=lines.filter(function(x){return /시|군|구|동|로|길|아파트|호|층/.test(x)}).join(' ');if(addr&&!$('address').value)$('address').value=addr;toast('แยกข้อมูลเบื้องต้นแล้ว')}
+function parseTextToFields(t){t=t||'';var amt=(t.match(/([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{4,})\s*(?:원|วอน)?/)||[])[1];var phone=(t.match(/01[016789][-\s]?[0-9]{3,4}[-\s]?[0-9]{4}/)||[])[0];var time=(t.match(/([01]?\d|2[0-3])[:.]([0-5]\d)/)||[]);if(amt&&!$('payAmount').value)$('payAmount').value=amt.replace(/,/g,'');if(phone&&!$('receiverPhone').value)$('receiverPhone').value=phone.replace(/[^0-9]/g,'');if(time&&!$('payTime').value)$('payTime').value=time[1].padStart(2,'0')+':'+time[2];var date=(t.match(/(20[0-9]{2})[-.\/년 ]+(1[0-2]|0?[1-9])[-.\/월 ]+(3[01]|[12][0-9]|0?[1-9])/ )||[]);if(date&&!$('payDate').value)$('payDate').value=date[1]+'-'+String(date[2]).padStart(2,'0')+'-'+String(date[3]).padStart(2,'0');var zip=(t.match(/\b[0-9]{5}\b/)||[])[0];if(zip&&!$('zipcode').value)$('zipcode').value=zip;var lines=t.split(/\n/).map(function(x){return x.trim()}).filter(Boolean);var addr=lines.filter(function(x){return /시|군|구|동|로|길|아파트|호|층/.test(x)}).join(' ');if(addr&&!$('address').value)$('address').value=addr;toast('แยกข้อมูลเบื้องต้นแล้ว')}
 async function runAiOcr(mode){var endpoint=localStorage.getItem(LS+'ocr_endpoint')||'';var key=localStorage.getItem(LS+'ocr_key')||'';if(!endpoint){toast('ยังไม่ได้ตั้งค่า AI OCR API');return}if(!ocrImageData){toast('เลือกรูปก่อน');return}toast('กำลังอ่านรูป...');try{var res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','Authorization':key?'Bearer '+key:''},body:JSON.stringify({mode:mode,image:ocrImageData})});var data=await res.json();applyOcrData(data);toast('อ่านรูปสำเร็จ')}catch(e){toast('AI OCR ใช้ไม่ได้: '+e.message)}}
 function applyOcrData(d){if(!d)return;if(d.text)$('ocrText').value=d.text;if(d.platform)$('channel').value=d.platform;if(d.customer_name)$('customerName').value=d.customer_name;if(d.receiver_name)$('receiverName').value=d.receiver_name;if(d.phone)$('receiverPhone').value=String(d.phone).replace(/[^0-9]/g,'');if(d.address)$('address').value=d.address;if(d.zipcode)$('zipcode').value=d.zipcode;if(d.shipping_memo)$('shippingMemo').value=d.shipping_memo;if(d.payment_amount)$('payAmount').value=d.payment_amount;if(d.payment_date)$('payDate').value=d.payment_date;if(d.payment_time)$('payTime').value=d.payment_time;if(d.payment_name)$('payerName').value=d.payment_name;if(d.payer_name)$('payerName').value=d.payer_name;}
 function pickField(x,names,matcher){
