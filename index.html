@@ -1382,9 +1382,52 @@ async function syncTrackingFromSupabase(){
     return true;
   }catch(e){console.warn('tracking sync failed',e);return false}
 }
-function paidOrdersForExport(){return orders.filter(function(o){return (o.status||'')==='PAID'})}
 function shipmentsForShipDate(o,shipDate){
   return orderShipments(o).filter(function(s){return s.ship_date===shipDate});
+}
+// Read-only shipment expansion for orders from the OTHER module (mini_pos), so the combined
+// OMS export can include them without running them through Partner POS's own box-editing
+// helpers (ensureBoxes/autoSplitBoxes are meant for wholesale box-splitting, not retail orders).
+function omsShipmentsForOrder(o){
+  var boxes=Array.isArray(o.boxes)&&o.boxes.length?o.boxes:[{box_no:1,items:o.items||[]}];
+  var defaultShip=boxes[0]||{};
+  return boxes.map(function(b,i){return {
+    box_no:b.box_no||i+1,
+    receiver_name:(b.receiver_name||'').trim()||o.receiver_name||o.customer_name||'',
+    receiver_phone:(b.receiver_phone||'').trim()||o.receiver_phone||'',
+    zipcode:(b.zipcode||'').trim()||o.zipcode||'',
+    address:(b.address||'').trim()||o.address||'',
+    shipping_memo:o.shipping_memo||'',
+    ship_date:b.ship_date||defaultShip.ship_date||o.ship_date||'',
+    items:b.items||[]
+  }});
+}
+function omsRowsFromShipments(o,shipments,platformLabel){
+  var rows=[];
+  var multiBox=shipments.length>1;
+  shipments.forEach(function(s){
+    var addr=(s.address||'').trim(); if(s.shipping_memo)addr += ' ('+s.shipping_memo+')';
+    var bundleNo=multiBox?(o.order_no+'-B'+(s.box_no||1)):(o.coupang_bundle_no||o.order_no||'');
+    (s.items||[]).forEach(function(it){
+      var p=productByOpt(it.option_id);
+      rows.push([
+        platformLabel,
+        o.order_no||'',
+        bundleNo,
+        s.receiver_name||o.customer_name||'',
+        s.receiver_phone||'',
+        s.zipcode||'',
+        addr,
+        String(it.display_product_id||p.display_product_id||''),
+        String(it.option_id||''),
+        p.option_name||p.option_name_kr||p.kr_name||'',
+        krDisplay(p)||p.thai_name||'',
+        Number(it.qty)||0,
+        p.batch_name||p.pick_name||p.thai_name||''
+      ]);
+    });
+  });
+  return rows;
 }
 function orderRowsForOms(o,shipments){
   var rows=[];
@@ -1414,16 +1457,24 @@ function orderRowsForOms(o,shipments){
   return rows;
 }
 async function exportPaidOrdersOMS(){
-  await fetchOrdersFromSupabase();
+  var all=await fetchAllOrdersForDashboard();
   var shipDate=($('omsShipDate')&&$('omsShipDate').value)||'';
-  var paid=paidOrdersForExport();
+  var paid=all.filter(function(o){return (o.status||'')==='PAID'});
   if(shipDate)paid=paid.filter(function(o){return orderShipDates(o).indexOf(shipDate)>=0});
   if(!paid.length){toast(shipDate?'ไม่มีออเดอร์ PAID ที่มีลังส่งวันที่ '+shipDate:'ยังไม่มีออเดอร์สถานะ PAID สำหรับดาวน์โหลด');return}
   var wb=new ExcelJS.Workbook();
   var ws=wb.addWorksheet('Orders');
   var headers=['플랫폼','주문번호','묶음배송번호','수취인이름','수취인전화번호','우편번호','수취인주소','노출상품ID','옵션ID','등록옵션명','노출상품명(옵션명)','수량','BatchName(สรุปหยิบ)'];
   ws.addRow(headers);
-  paid.forEach(function(o){orderRowsForOms(o,shipDate?shipmentsForShipDate(o,shipDate):null).forEach(function(r){ws.addRow(r)})});
+  paid.forEach(function(o){
+    if(String(o.order_module||'')==='partner_pos'){
+      orderRowsForOms(o,shipDate?shipmentsForShipDate(o,shipDate):null).forEach(function(r){ws.addRow(r)});
+    }else{
+      var ships=omsShipmentsForOrder(o);
+      if(shipDate)ships=ships.filter(function(s){return s.ship_date===shipDate});
+      omsRowsFromShipments(o,ships,o.channel||saleGroup(o)).forEach(function(r){ws.addRow(r)});
+    }
+  });
   ws.getRow(1).font={bold:true};
   ws.columns=[14,16,16,14,16,10,36,16,16,18,40,8,20].map(function(w){return {width:w}});
   ws.eachRow(function(row){row.eachCell(function(cell){cell.alignment={vertical:'middle',wrapText:true};cell.border={top:{style:'thin'},left:{style:'thin'},bottom:{style:'thin'},right:{style:'thin'}}})});
