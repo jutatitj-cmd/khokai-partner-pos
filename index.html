@@ -1634,25 +1634,24 @@ async function importRosenTrackingFile(file){
   }
   if(!byOrder.size){toast('ไม่พบแถวที่จับคู่เลขออเดอร์ได้เลยในไฟล์นี้');return}
   var sb=sbClient(); if(!sb){toast('Supabase ยังไม่พร้อม');return}
+  // Deliberately only writes khokai_tracking here — NOT khokai_pos_orders. This runs the moment
+  // Rosen assigns tracking numbers, which can be well before the item is actually packed. Both
+  // khokai-pack's live queue (status='PAID' AND tracking_no IS NULL) and khokai-tracking's
+  // customer page keep a PAID order visible/pending until it's genuinely packed; khokai-pack's
+  // own "แพคเรียบร้อยแล้ว" flow (via its existing khokai_tracking-backed trackingByKey pre-fill)
+  // is the only place that should flip status to SHIPPED. Writing tracking_no+SHIPPED here too
+  // made a packed-but-not-yet-shipped order vanish from the packing queue before it was ever
+  // physically packed — confirmed live: 73 mini_pos orders disappeared from KHOKAI Pack's
+  // "รอแพค" queue for 2026-07-13 the moment this ran.
   var trackingRows=[];
   byOrder.forEach(function(o){o.boxes.forEach(function(tr,boxNo){trackingRows.push({order_no:o.order_no,carrier:'로젠택배',tracking_no:tr,tracking_url:'https://www.ilogen.com/web/personal/trace/'+tr,status:'shipped',box_no:boxNo,shipped_at:new Date().toISOString()})})});
-  var trackingOk=0,orderOk=0,fail=0;
+  var trackingOk=0,fail=0;
   try{
     var up=await sb.from('khokai_tracking').upsert(trackingRows,{onConflict:'order_no,tracking_no'});
     if(up.error)throw up.error;
     trackingOk=trackingRows.length;
   }catch(e){fail++;console.warn('khokai_tracking upsert failed',e)}
-  var entries=Array.from(byOrder.values());
-  for(var i=0;i<entries.length;i++){
-    var entry=entries[i];
-    var firstTracking=entry.boxes.values().next().value;
-    try{
-      var up2=await sb.from('khokai_pos_orders').update({status:'SHIPPED',shipped_at:new Date().toISOString(),tracking_no:firstTracking,carrier:'로젠택배',exported_at:new Date().toISOString()}).eq('order_no',entry.order_no).eq('order_module',entry.order_module).neq('status','CANCELLED');
-      if(up2.error)throw up2.error;
-      orderOk++;
-    }catch(e){fail++;console.warn('order status update failed for',entry.order_no,e)}
-  }
-  toast('นำเข้า Tracking แล้ว: '+trackingOk+' เลขพัสดุ / อัปเดตสถานะ SHIPPED '+orderOk+' ออเดอร์'+(fail?' (ผิดพลาด '+fail+')':''));
+  toast('นำเข้าเลขพัสดุแล้ว: '+trackingOk+' รายการ (ยังไม่เปลี่ยนสถานะออเดอร์ — เลขพัสดุจะโชว์ในการ์ด KHOKAI Pack ให้แผนกแพคยืนยันตอนกดแพคเรียบร้อยแล้ว)'+(fail?' (ผิดพลาด '+fail+')':''));
   await fetchOrdersFromSupabase();
   renderHistory();
 }
