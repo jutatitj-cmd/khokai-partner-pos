@@ -1491,14 +1491,16 @@ async function exportPaidOrdersOMS(){
 // confirmed live that this exact text round-trips verbatim into the RESULT file's 배송메시지
 // column (parseRosenResultRow() below reads it back out). courier prices by TOTAL WEIGHT per
 // shipment, not box size, so box_rules' min/max_weight_kg brackets are read purely as rate tiers
-// (rate_krw) — same source khokai-oms's Settings tab writes to, so rates stay in sync across apps.
+// (rate_krw). box_rules also holds unrelated box-size/ice-pack guidance rows the packing floor
+// uses (khokai-pack's guessBoxRule) — the two are distinguished by box_rules.purpose
+// ('shipping_cost' vs 'box_guide'), never mix them, they're deliberately different numbers.
 var ROSEN_HEADERS=['수하인명','','수하인주소','수하인전화번호','수하인핸드폰번호','택배수량','택배운임','운임구분','물품명','','배송메세지'];
 async function fetchRosenBoxRules(){
   var sb=sbClient(); if(!sb)return [];
   try{
     var c=await sb.from('couriers').select('id').eq('code','ROZEN').limit(1);
     if(c.error||!c.data||!c.data.length)return [];
-    var r=await sb.from('box_rules').select('min_weight_kg,max_weight_kg,rate_krw').eq('courier_id',c.data[0].id).eq('active',true);
+    var r=await sb.from('box_rules').select('min_weight_kg,max_weight_kg,rate_krw').eq('courier_id',c.data[0].id).eq('active',true).eq('purpose','shipping_cost');
     if(r.error)return [];
     return (r.data||[]).slice().sort(function(a,b){return (Number(a.min_weight_kg)||0)-(Number(b.min_weight_kg)||0)});
   }catch(e){return []}
