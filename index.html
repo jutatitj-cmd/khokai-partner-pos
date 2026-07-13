@@ -86,6 +86,7 @@
   <section id="viewHistory" class="hide">
     <div class="card">
       <div class="bar"><div class="sectionTitle grow">ประวัติ</div><input id="omsShipDate" type="date" style="width:150px"><button id="exportOmsBtn" class="btn blue small">ดาวน์โหลด OMS</button><button id="exportRosenBtn" class="btn soft small">ดาวน์โหลดไฟล์ 로젠</button><button id="importRosenBtn" class="btn soft small">นำเข้าผลลัพธ์ 로젠</button><input id="rosenResultFile" type="file" accept=".xlsx" class="hide"><button id="refreshHistory" class="btn soft small">รีเฟรช</button></div>
+      <label class="mini" style="display:flex;align-items:center;gap:5px;margin-top:4px"><input id="rosenForceReexport" type="checkbox" style="width:auto">ดาวน์โหลดซ้ำ (ข้ามการป้องกันออกเลขพัสดุซ้ำ)</label>
       <p class="mini muted">เลือกวันที่จัดส่งเพื่อดาวน์โหลดเฉพาะลังที่ส่งวันนั้น ไม่เลือกจะดาวน์โหลดออเดอร์ PAID ทั้งหมด</p>
       <div class="filterbar">
         <button class="filterbtn active" data-filter="ACTIVE">Active</button>
@@ -1524,7 +1525,25 @@ function feeForWeight(kg,rules){
 function shipmentWeightKg(s,weights){
   return (s.items||[]).reduce(function(sum,it){return sum+(Number(weights[String(it.option_id)])||0)*(Number(it.qty)||0)},0);
 }
+// Prevents the same shipment being registered with Rosen twice (double tracking numbers) —
+// every (order_no, box_no) included in a download gets recorded in khokai_rosen_exports right
+// after the file is generated, and future downloads skip anything already in that table unless
+// the "ดาวน์โหลดซ้ำ" checkbox is explicitly ticked.
+async function fetchRosenExportedSet(){
+  var sb=sbClient(); if(!sb)return {};
+  try{
+    var r=await sb.from('khokai_rosen_exports').select('order_no,box_no');
+    if(r.error)return {};
+    var set={}; (r.data||[]).forEach(function(x){set[x.order_no+'|'+(Number(x.box_no)||1)]=true});
+    return set;
+  }catch(e){return {}}
+}
+async function markRosenExported(keys){
+  var sb=sbClient(); if(!sb||!keys.length)return;
+  try{await sb.from('khokai_rosen_exports').upsert(keys.map(function(k){return {order_no:k.order_no,box_no:k.box_no,exported_by:currentUser?currentUser.username:''}}),{onConflict:'order_no,box_no'})}catch(e){console.warn('mark rosen exported failed',e)}
+}
 async function exportPaidOrdersRosen(){
+  var force=($('rosenForceReexport')&&$('rosenForceReexport').checked)||false;
   var all=await fetchAllOrdersForDashboard();
   var shipDate=($('omsShipDate')&&$('omsShipDate').value)||'';
   var paid=all.filter(function(o){return (o.status||'')==='PAID'});
@@ -1533,7 +1552,9 @@ async function exportPaidOrdersRosen(){
   var rules=await fetchRosenBoxRules();
   if(!rules.length){toast('ไม่พบอัตราค่าส่ง 로젠 (box_rules) ใน Supabase — ตั้งค่าใน khokai-oms ก่อน');return}
   var weights=await fetchOptionWeights();
-  var rows=[];
+  var alreadyExported=force?{}:await fetchRosenExportedSet();
+  var skipped=0;
+  var rows=[], exportedKeys=[];
   paid.forEach(function(o){
     var isPartner=String(o.order_module||'')==='partner_pos';
     var ships=isPartner?orderShipments(o):omsShipmentsForOrder(o);
@@ -1541,15 +1562,19 @@ async function exportPaidOrdersRosen(){
     var multiBox=ships.length>1;
     var platform=o.channel||saleGroup(o);
     ships.forEach(function(s){
+      var boxNo=s.box_no||1;
+      var exportKey=(o.order_no||'')+'|'+boxNo;
+      if(alreadyExported[exportKey]){skipped++;return}
       var addr=(s.address||'').trim(); if(s.shipping_memo)addr+=' ('+s.shipping_memo+')';
-      var bundleNo=multiBox?(o.order_no+'-B'+(s.box_no||1)):(o.order_no||'');
+      var bundleNo=multiBox?(o.order_no+'-B'+boxNo):(o.order_no||'');
       var kg=shipmentWeightKg(s,weights);
       var f=feeForWeight(kg,rules);
       var receiver=s.receiver_name||o.customer_name||'';
       rows.push([receiver,'',addr,'',s.receiver_phone||'',f.units,f.fee,'010','냉동식품','',platform+' '+bundleNo+' '+receiver]);
+      exportedKeys.push({order_no:o.order_no,box_no:boxNo});
     });
   });
-  if(!rows.length){toast('ไม่มีรายการสำหรับสร้างไฟล์ 로젠');return}
+  if(!rows.length){toast(skipped?'ออเดอร์ที่เลือกดาวน์โหลดไฟล์ 로젠 ไปแล้วทั้งหมด ('+skipped+' รายการ) — ติ๊ก "ดาวน์โหลดซ้ำ" ถ้าต้องการจริง ๆ':'ไม่มีรายการสำหรับสร้างไฟล์ 로젠');return}
   var wb=new ExcelJS.Workbook();
   var ws=wb.addWorksheet('Rosen');
   ws.addRow(ROSEN_HEADERS);
@@ -1560,7 +1585,8 @@ async function exportPaidOrdersRosen(){
   var buf=await wb.xlsx.writeBuffer();
   var blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='RosenUpload_'+(shipDate||todayYYMMDD())+'.xlsx';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1000);
-  toast('ดาวน์โหลดไฟล์ 로젠 แล้ว: '+rows.length+' รายการ');
+  if(!force)await markRosenExported(exportedKeys);
+  toast('ดาวน์โหลดไฟล์ 로젠 แล้ว: '+rows.length+' รายการ'+(skipped?' (ข้ามที่เคยดาวน์โหลดแล้ว '+skipped+' รายการ)':''));
 }
 // Reads a 로젠 registration-result file back — real column headers seen in a live export:
 // No./차수/순번/운송장번호/.../수하인(이름·주소·상세주소·전화·휴대폰)/박스수량/택배운임/운임구분/물품명/
