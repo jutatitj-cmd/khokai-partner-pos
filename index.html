@@ -1527,6 +1527,16 @@ function feeForWeight(kg,rules){
 function shipmentWeightKg(s,weights){
   return (s.items||[]).reduce(function(sum,it){return sum+(Number(weights[String(it.option_id)])||0)*(Number(it.qty)||0)},0);
 }
+var ICE_PACK_KG=0.33;
+// Ice pack count is decided from PRODUCT weight (what the packer knows before adding ice), then
+// added on top to get the real total weight 로젠 actually weighs — feeForWeight() must see that
+// total, not just product weight, or every shipment gets under-quoted on the courier fee.
+function icePackCountForWeight(productKg){
+  if(productKg<=3)return 1;
+  if(productKg<=5)return 2;
+  if(productKg<=15)return 3;
+  return 4;
+}
 // Prevents the same shipment being registered with Rosen twice (double tracking numbers) —
 // every (order_no, box_no) included in a download gets recorded in khokai_rosen_exports right
 // after the file is generated, and future downloads skip anything already in that table unless
@@ -1569,8 +1579,9 @@ async function exportPaidOrdersRosen(){
       if(alreadyExported[exportKey]){skipped++;return}
       var addr=(s.address||'').trim(); if(s.shipping_memo)addr+=' ('+s.shipping_memo+')';
       var bundleNo=multiBox?(o.order_no+'-B'+boxNo):(o.order_no||'');
-      var kg=shipmentWeightKg(s,weights);
-      var f=feeForWeight(kg,rules);
+      var productKg=shipmentWeightKg(s,weights);
+      var totalKg=productKg+icePackCountForWeight(productKg)*ICE_PACK_KG;
+      var f=feeForWeight(totalKg,rules);
       var receiver=s.receiver_name||o.customer_name||'';
       rows.push([receiver,'',addr,'',s.receiver_phone||'',f.units,f.fee,'010','냉동식품','',platform+' '+bundleNo+' '+receiver]);
       exportedKeys.push({order_no:o.order_no,box_no:boxNo});
