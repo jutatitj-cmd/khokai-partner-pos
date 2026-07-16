@@ -860,11 +860,15 @@ function paintDashboard(){
   // the only place that answers that specifically for today, combining Facebook/Coupang/Partner POS.
   var todayKey=(function(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
   var todayStats=byDay[todayKey]||{orders:0,items:0,total:0};
+  function productBreakdownHtml(x){
+    return Object.keys(x.products||{}).sort(function(a,b){return (x.products[b].qty||0)-(x.products[a].qty||0);}).map(function(k){var pr=x.products[k];var orderCount=Object.keys(pr.orders||{}).length;return '<div class="mini" style="display:flex;justify-content:space-between;gap:8px;border-top:1px dashed #e5e7eb;padding-top:5px;margin-top:5px"><span><b>'+escapeHtml(pr.name||k)+'</b><br><span class="muted">Display '+escapeHtml(k)+' · '+orderCount+' ออเดอร์</span></span><span style="text-align:right;white-space:nowrap">'+(pr.qty||0)+' ชิ้น<br>'+money(pr.sales||0)+'</span></div>';}).join('');
+  }
+  var todayProd=productBreakdownHtml(todayStats);
   var groupCards=GROUPS.map(function(g){var v=scopeGroups[g]||{total:0,orders:0};return '<div class="histCard"><div><b>'+g+'</b><div class="mini">'+v.orders+' ออเดอร์</div></div><div class="histAmt">'+money(v.total)+'</div></div>';}).join('');
   var daily=scopeDays.map(function(dkey){
     var x=byDay[dkey];
     var gline=GROUPS.filter(function(g){return x.groups[g];}).map(function(g){return escapeHtml(g)+' '+money(x.groups[g].total);}).join(' · ');
-    var prod=Object.keys(x.products||{}).sort(function(a,b){return (x.products[b].qty||0)-(x.products[a].qty||0);}).map(function(k){var pr=x.products[k];var orderCount=Object.keys(pr.orders||{}).length;return '<div class="mini" style="display:flex;justify-content:space-between;gap:8px;border-top:1px dashed #e5e7eb;padding-top:5px;margin-top:5px"><span><b>'+escapeHtml(pr.name||k)+'</b><br><span class="muted">Display '+escapeHtml(k)+' · '+orderCount+' ออเดอร์</span></span><span style="text-align:right;white-space:nowrap">'+(pr.qty||0)+' ชิ้น<br>'+money(pr.sales||0)+'</span></div>';}).join('');
+    var prod=productBreakdownHtml(x);
     var fb=x.fallback?' · <span style="color:#d97706">ไม่มีวันเงินเข้า (อิงวันจัดส่ง/วันสร้าง) '+x.fallback+'</span>':'';
     return '<div class="histCard" style="display:block"><div style="display:flex;justify-content:space-between;gap:10px"><div><div class="histNo">'+escapeHtml(dkey)+'</div><div class="mini">ออเดอร์ '+x.orders+' · สินค้า '+x.items+' ชิ้น · รอส่ง '+x.paid+' · ส่งแล้ว '+x.shipped+fb+'</div><div class="mini">'+(gline||'-')+'</div></div><div class="histAmt">'+money(x.total)+'</div></div><div style="margin-top:8px">'+(prod||'<div class="mini muted">ไม่มีรายการสินค้า</div>')+'</div></div>';
   }).join('');
@@ -872,7 +876,7 @@ function paintDashboard(){
   var sellerHtml=Object.keys(seller).map(function(u){var x=seller[u];return '<div class="histCard"><div><b>'+escapeHtml(u)+'</b><div class="mini">ทั้งหมด '+x.count+' · PAID '+x.paid+' · TEMP '+x.temp+' · ยกเลิก '+x.cancel+'</div></div><div class="histAmt">'+money(x.total)+'</div></div>';}).join('')||'<div class="mutedBox mini">ยังไม่มีข้อมูล</div>';
   var scopeLabel=dashMonth?('เดือน '+monthLabel(dashMonth)):'5 วันล่าสุด';
   $('dashboard').innerHTML=
-    '<div class="histCard" style="background:#eff6ff;border:1px solid #bfdbfe"><div><b>วันนี้ ('+todayKey+') รวมทุกช่องทาง</b><div class="mini">'+todayStats.orders+' ออเดอร์</div></div><div class="histAmt">'+todayStats.items+' ชิ้น<br><span class="mini">'+money(todayStats.total)+'</span></div></div>'+
+    '<div class="histCard" style="display:block;background:#eff6ff;border:1px solid #bfdbfe"><div style="display:flex;justify-content:space-between;gap:10px"><div><b>วันนี้ ('+todayKey+') รวมทุกช่องทาง</b><div class="mini">'+todayStats.orders+' ออเดอร์</div></div><div class="histAmt">'+todayStats.items+' ชิ้น<br><span class="mini">'+money(todayStats.total)+'</span></div></div><div style="margin-top:8px">'+(todayProd||'<div class="mini muted">ยังไม่มีรายการวันนี้</div>')+'</div></div>'+
     '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;margin-top:14px"><div class="sectionTitle" style="margin:0">ยอดตามกลุ่มช่องทาง ('+escapeHtml(scopeLabel)+')</div><select id="dashMonth" style="padding:8px 10px;border:1px solid #ddd;border-radius:10px;font-size:13px">'+monthOpts+'</select></div>'+
     groupCards+
     '<div class="histCard" style="background:#f0fdf4;border:1px solid #bbf7d0"><div><b>รวมทั้งหมด</b><div class="mini">'+scopeOrders+' ออเดอร์</div></div><div class="histAmt">'+scopeItems+' ชิ้น<br><span class="mini">'+money(scopeTotal)+'</span></div></div>'+
