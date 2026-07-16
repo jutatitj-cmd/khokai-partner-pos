@@ -795,6 +795,14 @@ function saleGroup(o){
   if(ch==='coupang'||o.coupang_bundle_no)return 'Coupang';
   return 'Facebook';
 }
+// นับตาม option_id ปกติ (แต่ละไซส์แยกบรรทัด ตรงกับ KHOKAI Pack) ยกเว้นน้ำจิ้ม (display_product_id
+// 9629749631) ที่ทุกไซส์บรรจุภัณฑ์คือซองเดิม 80g เพียงแต่มัดรวมมาคนละจำนวน จึงนับรวมตาม display_product_id
+var SAUCE_DISPLAY_ID='9629749631';
+function productGroupKey(it,p){
+  var dpid=String((it&&it.display_product_id)||(p&&p.display_product_id)||'').trim();
+  if(dpid===SAUCE_DISPLAY_ID)return 'D:'+dpid;
+  return 'O:'+(String((it&&it.option_id)||(p&&p.option_id)||'NO_OPTION').trim()||'NO_OPTION');
+}
 // ดึงออเดอร์ทั้ง mini_pos + partner_pos สำหรับหน้าสรุป (ไม่แตะ orders หลักของแอป)
 async function fetchAllOrdersForDashboard(){
   var sb=sbClient(); if(!sb)return (orders||[]).slice();
@@ -837,9 +845,7 @@ function paintDashboard(){
     d.groups[g].total+=orderTotal(o); d.groups[g].orders++;
     (o.items||[]).forEach(function(it){
       var p=productByOpt(it.option_id)||{};
-      // นับตาม option_id ไม่ใช่ display_product_id เพราะสินค้าคนละไซส์ (เช่นลูกชิ้นหมู 1kg/700g/280g)
-      // อาจแชร์ display_product_id เดียวกัน แต่เป็นคนละ SKU จริง -- ต้องแยกให้ตรงกับ KHOKAI Pack
-      var did=String(it.option_id||p.option_id||'NO_OPTION').trim()||'NO_OPTION';
+      var did=productGroupKey(it,p);
       var qty=Number(it.qty)||0;
       var line=qty*(Number(it.price)||Number(p.page_price)||Number(p.price)||0);
       var nm=p.thai_name||it.name||p.kr_name||did;
@@ -873,7 +879,7 @@ function paintDashboard(){
       s.items+=(o.items||[]).reduce(function(a,it){return a+(Number(it.qty)||0)},0);
       (o.items||[]).forEach(function(it){
         var p=productByOpt(it.option_id)||{};
-        var did=String(it.option_id||p.option_id||'NO_OPTION').trim()||'NO_OPTION';
+        var did=productGroupKey(it,p);
         var qty=Number(it.qty)||0;
         var line=qty*(Number(it.price)||Number(p.page_price)||Number(p.price)||0);
         var nm=p.thai_name||it.name||p.kr_name||did;
@@ -886,7 +892,7 @@ function paintDashboard(){
     return s;
   })();
   function productBreakdownHtml(x){
-    return Object.keys(x.products||{}).sort(function(a,b){return (x.products[b].qty||0)-(x.products[a].qty||0);}).map(function(k){var pr=x.products[k];var orderCount=Object.keys(pr.orders||{}).length;var chLine=GROUPS.filter(function(g){return pr.channels&&pr.channels[g];}).map(function(g){return escapeHtml(g)+' '+pr.channels[g];}).join(' · ');return '<div class="mini" style="display:flex;justify-content:space-between;gap:8px;border-top:1px dashed #e5e7eb;padding-top:5px;margin-top:5px"><span><b>'+escapeHtml(pr.name||k)+'</b><br><span class="muted">Option '+escapeHtml(k)+' · '+orderCount+' ออเดอร์</span>'+(chLine?'<br><span class="muted">'+chLine+'</span>':'')+'</span><span style="text-align:right;white-space:nowrap">'+(pr.qty||0)+' ชิ้น<br>'+money(pr.sales||0)+'</span></div>';}).join('');
+    return Object.keys(x.products||{}).sort(function(a,b){return (x.products[b].qty||0)-(x.products[a].qty||0);}).map(function(k){var pr=x.products[k];var orderCount=Object.keys(pr.orders||{}).length;var chLine=GROUPS.filter(function(g){return pr.channels&&pr.channels[g];}).map(function(g){return escapeHtml(g)+' '+pr.channels[g];}).join(' · ');var kLabel=(k.indexOf('D:')===0?'Display ':'Option ')+k.slice(2);return '<div class="mini" style="display:flex;justify-content:space-between;gap:8px;border-top:1px dashed #e5e7eb;padding-top:5px;margin-top:5px"><span><b>'+escapeHtml(pr.name||k)+'</b><br><span class="muted">'+escapeHtml(kLabel)+' · '+orderCount+' ออเดอร์</span>'+(chLine?'<br><span class="muted">'+chLine+'</span>':'')+'</span><span style="text-align:right;white-space:nowrap">'+(pr.qty||0)+' ชิ้น<br>'+money(pr.sales||0)+'</span></div>';}).join('');
   }
   var todayProd=productBreakdownHtml(todayStats);
   var groupCards=GROUPS.map(function(g){var v=scopeGroups[g]||{total:0,orders:0};return '<div class="histCard"><div><b>'+g+'</b><div class="mini">'+v.orders+' ออเดอร์</div></div><div class="histAmt">'+money(v.total)+'</div></div>';}).join('');
