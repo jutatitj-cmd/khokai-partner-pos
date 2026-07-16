@@ -790,7 +790,8 @@ function closeMessagePopup(){$('messageModal').classList.remove('show')}
 var dashOrders=null, dashMonth='', DASH_MODULE='partner_pos';
 // จัดกลุ่มออเดอร์เป็น 3 กลุ่มใหญ่: Facebook (ปลีกที่ไม่ใช่ Coupang) / Coupang / Partner POS (ราคาส่ง)
 function saleGroup(o){
-  if(String(o.order_module||'')==='partner_pos')return 'Partner POS';
+  // แยก Partner POS เป็น T1 (รายย่อย) กับ T2-6 (ยี่ปั๊ว) ตามเทียร์ราคาที่มีอยู่แล้ว ไม่ต้องเพิ่มฟิลด์ใหม่
+  if(String(o.order_module||'')==='partner_pos')return Number(o.price_tier)===1?'Partner POS T1':'Partner POS T2-6';
   var ch=String(o.channel||'').toLowerCase();
   if(ch==='coupang'||o.coupang_bundle_no)return 'Coupang';
   return 'Facebook';
@@ -820,7 +821,7 @@ function paintDashboard(){
   // ยอดขายรายวันคือรายงานรายได้ (มีโมดูลไฟแนนซ์แยกต่างหากแล้ว) จึงยึด "วันเงินเข้า" เป็นหลัก ไม่ใช่วัน
   // จัดส่ง — คนละเรื่องกับ "สินค้าที่ต้องหยิบ" ใน KHOKAI Pack ที่เป็นเรื่องสต็อก/งานส่งของ ยึดวันจัดส่ง
   function paymentOf(o){return cleanShipDate(o.payment_date);}
-  var GROUPS=['Facebook','Coupang','Partner POS'];
+  var GROUPS=['Facebook','Coupang','Partner POS T1','Partner POS T2-6'];
   var byDay={}, seller={};
   all.forEach(function(o){
     var st=String(o.status||'TEMP').toUpperCase();
