@@ -809,7 +809,9 @@ function paintDashboard(){
   var all=dashOrders||[];
   function cleanShipDate(v){v=String(v||'').trim();if(!v)return '';var m=v.match(/^(20[0-9]{2})[-.\/](1[0-2]|0?[1-9])[-.\/](3[01]|[12][0-9]|0?[1-9])/);if(m)return m[1]+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[3]).padStart(2,'0');return v.slice(0,10);}
   function shipOf(o){return cleanShipDate((typeof orderShipDates==='function'?(orderShipDates(o)||[])[0]:'')||o.ship_date||o.shipping_date||o.delivery_date||o.shipped_at||o.shipping_at);}
-  function saleOf(o){return cleanShipDate(o.payment_date||o.created_at||o.updated_at);}
+  // ยอดขายรายวันคือรายงานรายได้ (มีโมดูลไฟแนนซ์แยกต่างหากแล้ว) จึงยึด "วันเงินเข้า" เป็นหลัก ไม่ใช่วัน
+  // จัดส่ง — คนละเรื่องกับ "สินค้าที่ต้องหยิบ" ใน KHOKAI Pack ที่เป็นเรื่องสต็อก/งานส่งของ ยึดวันจัดส่ง
+  function paymentOf(o){return cleanShipDate(o.payment_date);}
   var GROUPS=['Facebook','Coupang','Partner POS'];
   var byDay={}, seller={};
   all.forEach(function(o){
@@ -822,14 +824,14 @@ function paintDashboard(){
       if(st!=='CANCELLED')seller[u].total+=orderTotal(o);
     }
     if(st!=='PAID'&&st!=='COMPLETED'&&st!=='SHIPPED')return;
-    var day=shipOf(o), kind='ship'; if(!day){day=saleOf(o);kind='sale';}
+    var day=paymentOf(o), kind='payment'; if(!day){day=shipOf(o);kind='ship';} if(!day){day=cleanShipDate(o.created_at||o.updated_at);kind='created';}
     if(!day)return;
     if(!byDay[day])byDay[day]={orders:0,items:0,total:0,paid:0,shipped:0,fallback:0,groups:{},products:{}};
     var d=byDay[day];
     d.orders++; d.total+=orderTotal(o);
     d.items+=(o.items||[]).reduce(function(a,it){return a+(Number(it.qty)||0)},0);
     if(st==='SHIPPED'||st==='COMPLETED')d.shipped++;else d.paid++;
-    if(kind==='sale')d.fallback++;
+    if(kind!=='payment')d.fallback++;
     var g=saleGroup(o);
     if(!d.groups[g])d.groups[g]={total:0,orders:0};
     d.groups[g].total+=orderTotal(o); d.groups[g].orders++;
@@ -859,7 +861,7 @@ function paintDashboard(){
     var x=byDay[dkey];
     var gline=GROUPS.filter(function(g){return x.groups[g];}).map(function(g){return escapeHtml(g)+' '+money(x.groups[g].total);}).join(' · ');
     var prod=Object.keys(x.products||{}).sort(function(a,b){return (x.products[b].qty||0)-(x.products[a].qty||0);}).map(function(k){var pr=x.products[k];var orderCount=Object.keys(pr.orders||{}).length;return '<div class="mini" style="display:flex;justify-content:space-between;gap:8px;border-top:1px dashed #e5e7eb;padding-top:5px;margin-top:5px"><span><b>'+escapeHtml(pr.name||k)+'</b><br><span class="muted">Display '+escapeHtml(k)+' · '+orderCount+' ออเดอร์</span></span><span style="text-align:right;white-space:nowrap">'+(pr.qty||0)+' ชิ้น<br>'+money(pr.sales||0)+'</span></div>';}).join('');
-    var fb=x.fallback?' · <span style="color:#d97706">อิงวันที่ขาย '+x.fallback+'</span>':'';
+    var fb=x.fallback?' · <span style="color:#d97706">ไม่มีวันเงินเข้า (อิงวันจัดส่ง/วันสร้าง) '+x.fallback+'</span>':'';
     return '<div class="histCard" style="display:block"><div style="display:flex;justify-content:space-between;gap:10px"><div><div class="histNo">'+escapeHtml(dkey)+'</div><div class="mini">ออเดอร์ '+x.orders+' · สินค้า '+x.items+' ชิ้น · รอส่ง '+x.paid+' · ส่งแล้ว '+x.shipped+fb+'</div><div class="mini">'+(gline||'-')+'</div></div><div class="histAmt">'+money(x.total)+'</div></div><div style="margin-top:8px">'+(prod||'<div class="mini muted">ไม่มีรายการสินค้า</div>')+'</div></div>';
   }).join('');
   if(!daily)daily='<div class="mutedBox mini">ยังไม่มีข้อมูลยอดขายในช่วงนี้</div>';
