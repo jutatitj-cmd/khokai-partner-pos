@@ -841,9 +841,10 @@ function paintDashboard(){
       var qty=Number(it.qty)||0;
       var line=qty*(Number(it.price)||Number(p.page_price)||Number(p.price)||0);
       var nm=p.thai_name||it.name||p.kr_name||did;
-      if(!d.products[did])d.products[did]={name:nm,qty:0,sales:0,orders:{}};
+      if(!d.products[did])d.products[did]={name:nm,qty:0,sales:0,orders:{},channels:{}};
       else if(nm&&nm.length<d.products[did].name.length)d.products[did].name=nm;
       d.products[did].qty+=qty; d.products[did].sales+=line; d.products[did].orders[o.order_no||o.id]=true;
+      d.products[did].channels[g]=(d.products[did].channels[g]||0)+qty;
     });
   });
   var allDays=Object.keys(byDay).sort().reverse();
@@ -874,15 +875,16 @@ function paintDashboard(){
         var qty=Number(it.qty)||0;
         var line=qty*(Number(it.price)||Number(p.page_price)||Number(p.price)||0);
         var nm=p.thai_name||it.name||p.kr_name||did;
-        if(!s.products[did])s.products[did]={name:nm,qty:0,sales:0,orders:{}};
+        if(!s.products[did])s.products[did]={name:nm,qty:0,sales:0,orders:{},channels:{}};
         else if(nm&&nm.length<s.products[did].name.length)s.products[did].name=nm;
         s.products[did].qty+=qty; s.products[did].sales+=line; s.products[did].orders[o.order_no||o.id]=true;
+        s.products[did].channels[saleGroup(o)]=(s.products[did].channels[saleGroup(o)]||0)+qty;
       });
     });
     return s;
   })();
   function productBreakdownHtml(x){
-    return Object.keys(x.products||{}).sort(function(a,b){return (x.products[b].qty||0)-(x.products[a].qty||0);}).map(function(k){var pr=x.products[k];var orderCount=Object.keys(pr.orders||{}).length;return '<div class="mini" style="display:flex;justify-content:space-between;gap:8px;border-top:1px dashed #e5e7eb;padding-top:5px;margin-top:5px"><span><b>'+escapeHtml(pr.name||k)+'</b><br><span class="muted">Display '+escapeHtml(k)+' · '+orderCount+' ออเดอร์</span></span><span style="text-align:right;white-space:nowrap">'+(pr.qty||0)+' ชิ้น<br>'+money(pr.sales||0)+'</span></div>';}).join('');
+    return Object.keys(x.products||{}).sort(function(a,b){return (x.products[b].qty||0)-(x.products[a].qty||0);}).map(function(k){var pr=x.products[k];var orderCount=Object.keys(pr.orders||{}).length;var chLine=GROUPS.filter(function(g){return pr.channels&&pr.channels[g];}).map(function(g){return escapeHtml(g)+' '+pr.channels[g];}).join(' · ');return '<div class="mini" style="display:flex;justify-content:space-between;gap:8px;border-top:1px dashed #e5e7eb;padding-top:5px;margin-top:5px"><span><b>'+escapeHtml(pr.name||k)+'</b><br><span class="muted">Display '+escapeHtml(k)+' · '+orderCount+' ออเดอร์</span>'+(chLine?'<br><span class="muted">'+chLine+'</span>':'')+'</span><span style="text-align:right;white-space:nowrap">'+(pr.qty||0)+' ชิ้น<br>'+money(pr.sales||0)+'</span></div>';}).join('');
   }
   var todayProd=productBreakdownHtml(todayStats);
   var groupCards=GROUPS.map(function(g){var v=scopeGroups[g]||{total:0,orders:0};return '<div class="histCard"><div><b>'+g+'</b><div class="mini">'+v.orders+' ออเดอร์</div></div><div class="histAmt">'+money(v.total)+'</div></div>';}).join('');
