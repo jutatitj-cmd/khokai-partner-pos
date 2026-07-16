@@ -854,8 +854,12 @@ function paintDashboard(){
   var thM=['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
   function monthLabel(ym){var p=ym.split('-');return (thM[Number(p[1])]||p[1])+' '+p[0];}
   var monthOpts='<option value="">5 วันล่าสุด</option>'+months.map(function(m){return '<option value="'+m+'"'+(m===dashMonth?' selected':'')+'>'+monthLabel(m)+'</option>';}).join('');
-  var scopeGroups={}, scopeTotal=0, scopeOrders=0;
-  scopeDays.forEach(function(k){var d=byDay[k];scopeTotal+=d.total;scopeOrders+=d.orders;GROUPS.forEach(function(g){if(d.groups[g]){if(!scopeGroups[g])scopeGroups[g]={total:0,orders:0};scopeGroups[g].total+=d.groups[g].total;scopeGroups[g].orders+=d.groups[g].orders;}});});
+  var scopeGroups={}, scopeTotal=0, scopeOrders=0, scopeItems=0;
+  scopeDays.forEach(function(k){var d=byDay[k];scopeTotal+=d.total;scopeOrders+=d.orders;scopeItems+=d.items;GROUPS.forEach(function(g){if(d.groups[g]){if(!scopeGroups[g])scopeGroups[g]={total:0,orders:0};scopeGroups[g].total+=d.groups[g].total;scopeGroups[g].orders+=d.groups[g].orders;}});});
+  // "ของขายออกไปกี่ชิ้น รวมทุกช่องทาง" -- KHOKAI Pack only counts items shipped via 택배, so this is
+  // the only place that answers that specifically for today, combining Facebook/Coupang/Partner POS.
+  var todayKey=(function(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
+  var todayStats=byDay[todayKey]||{orders:0,items:0,total:0};
   var groupCards=GROUPS.map(function(g){var v=scopeGroups[g]||{total:0,orders:0};return '<div class="histCard"><div><b>'+g+'</b><div class="mini">'+v.orders+' ออเดอร์</div></div><div class="histAmt">'+money(v.total)+'</div></div>';}).join('');
   var daily=scopeDays.map(function(dkey){
     var x=byDay[dkey];
@@ -868,9 +872,10 @@ function paintDashboard(){
   var sellerHtml=Object.keys(seller).map(function(u){var x=seller[u];return '<div class="histCard"><div><b>'+escapeHtml(u)+'</b><div class="mini">ทั้งหมด '+x.count+' · PAID '+x.paid+' · TEMP '+x.temp+' · ยกเลิก '+x.cancel+'</div></div><div class="histAmt">'+money(x.total)+'</div></div>';}).join('')||'<div class="mutedBox mini">ยังไม่มีข้อมูล</div>';
   var scopeLabel=dashMonth?('เดือน '+monthLabel(dashMonth)):'5 วันล่าสุด';
   $('dashboard').innerHTML=
-    '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px"><div class="sectionTitle" style="margin:0">ยอดตามกลุ่มช่องทาง ('+escapeHtml(scopeLabel)+')</div><select id="dashMonth" style="padding:8px 10px;border:1px solid #ddd;border-radius:10px;font-size:13px">'+monthOpts+'</select></div>'+
+    '<div class="histCard" style="background:#eff6ff;border:1px solid #bfdbfe"><div><b>วันนี้ ('+todayKey+') รวมทุกช่องทาง</b><div class="mini">'+todayStats.orders+' ออเดอร์</div></div><div class="histAmt">'+todayStats.items+' ชิ้น<br><span class="mini">'+money(todayStats.total)+'</span></div></div>'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;margin-top:14px"><div class="sectionTitle" style="margin:0">ยอดตามกลุ่มช่องทาง ('+escapeHtml(scopeLabel)+')</div><select id="dashMonth" style="padding:8px 10px;border:1px solid #ddd;border-radius:10px;font-size:13px">'+monthOpts+'</select></div>'+
     groupCards+
-    '<div class="histCard" style="background:#f0fdf4;border:1px solid #bbf7d0"><div><b>รวมทั้งหมด</b><div class="mini">'+scopeOrders+' ออเดอร์</div></div><div class="histAmt">'+money(scopeTotal)+'</div></div>'+
+    '<div class="histCard" style="background:#f0fdf4;border:1px solid #bbf7d0"><div><b>รวมทั้งหมด</b><div class="mini">'+scopeOrders+' ออเดอร์</div></div><div class="histAmt">'+scopeItems+' ชิ้น<br><span class="mini">'+money(scopeTotal)+'</span></div></div>'+
     '<div class="sectionTitle" style="margin-top:14px">ยอดขายรายวัน</div>'+daily+
     '<div class="sectionTitle" style="margin-top:14px">สรุปตามผู้ขาย ('+DASH_MODULE+')</div>'+sellerHtml;
   var sel=document.getElementById('dashMonth');if(sel){sel.value=dashMonth;sel.onchange=function(){dashMonth=this.value;paintDashboard();};}
