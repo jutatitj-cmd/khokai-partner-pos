@@ -856,10 +856,31 @@ function paintDashboard(){
   var monthOpts='<option value="">5 วันล่าสุด</option>'+months.map(function(m){return '<option value="'+m+'"'+(m===dashMonth?' selected':'')+'>'+monthLabel(m)+'</option>';}).join('');
   var scopeGroups={}, scopeTotal=0, scopeOrders=0, scopeItems=0;
   scopeDays.forEach(function(k){var d=byDay[k];scopeTotal+=d.total;scopeOrders+=d.orders;scopeItems+=d.items;GROUPS.forEach(function(g){if(d.groups[g]){if(!scopeGroups[g])scopeGroups[g]={total:0,orders:0};scopeGroups[g].total+=d.groups[g].total;scopeGroups[g].orders+=d.groups[g].orders;}});});
-  // "ของขายออกไปกี่ชิ้น รวมทุกช่องทาง" -- KHOKAI Pack only counts items shipped via 택배, so this is
-  // the only place that answers that specifically for today, combining Facebook/Coupang/Partner POS.
+  // "สินค้าที่ออกจากโรงงานวันนี้ ทุกช่องทาง" -- ยึดวันจัดส่งจริง (ship date) ไม่ใช่วันเงินเข้า เพราะเป็นเรื่อง
+  // ของที่ออกจากโรงงานจริง ไม่ใช่รายได้ และนับทุกออเดอร์ ไม่จำกัดเฉพาะที่ส่งทาง택배 (ต่างจาก KHOKAI Pack ที่นับ
+  // เฉพาะออเดอร์ที่ผ่านการแพค/ส่งทาง택배 เท่านั้น)
   var todayKey=(function(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
-  var todayStats=byDay[todayKey]||{orders:0,items:0,total:0};
+  var todayStats=(function(){
+    var s={orders:0,items:0,total:0,products:{}};
+    all.forEach(function(o){
+      var st=String(o.status||'TEMP').toUpperCase();
+      if(st!=='PAID'&&st!=='COMPLETED'&&st!=='SHIPPED')return;
+      if(shipOf(o)!==todayKey)return;
+      s.orders++; s.total+=orderTotal(o);
+      s.items+=(o.items||[]).reduce(function(a,it){return a+(Number(it.qty)||0)},0);
+      (o.items||[]).forEach(function(it){
+        var p=productByOpt(it.option_id)||{};
+        var did=String(it.display_product_id||p.display_product_id||'NO_DISPLAY').trim()||'NO_DISPLAY';
+        var qty=Number(it.qty)||0;
+        var line=qty*(Number(it.price)||Number(p.page_price)||Number(p.price)||0);
+        var nm=p.thai_name||it.name||p.kr_name||did;
+        if(!s.products[did])s.products[did]={name:nm,qty:0,sales:0,orders:{}};
+        else if(nm&&nm.length<s.products[did].name.length)s.products[did].name=nm;
+        s.products[did].qty+=qty; s.products[did].sales+=line; s.products[did].orders[o.order_no||o.id]=true;
+      });
+    });
+    return s;
+  })();
   function productBreakdownHtml(x){
     return Object.keys(x.products||{}).sort(function(a,b){return (x.products[b].qty||0)-(x.products[a].qty||0);}).map(function(k){var pr=x.products[k];var orderCount=Object.keys(pr.orders||{}).length;return '<div class="mini" style="display:flex;justify-content:space-between;gap:8px;border-top:1px dashed #e5e7eb;padding-top:5px;margin-top:5px"><span><b>'+escapeHtml(pr.name||k)+'</b><br><span class="muted">Display '+escapeHtml(k)+' · '+orderCount+' ออเดอร์</span></span><span style="text-align:right;white-space:nowrap">'+(pr.qty||0)+' ชิ้น<br>'+money(pr.sales||0)+'</span></div>';}).join('');
   }
@@ -876,7 +897,7 @@ function paintDashboard(){
   var sellerHtml=Object.keys(seller).map(function(u){var x=seller[u];return '<div class="histCard"><div><b>'+escapeHtml(u)+'</b><div class="mini">ทั้งหมด '+x.count+' · PAID '+x.paid+' · TEMP '+x.temp+' · ยกเลิก '+x.cancel+'</div></div><div class="histAmt">'+money(x.total)+'</div></div>';}).join('')||'<div class="mutedBox mini">ยังไม่มีข้อมูล</div>';
   var scopeLabel=dashMonth?('เดือน '+monthLabel(dashMonth)):'5 วันล่าสุด';
   $('dashboard').innerHTML=
-    '<div class="histCard" style="display:block;background:#eff6ff;border:1px solid #bfdbfe"><div style="display:flex;justify-content:space-between;gap:10px"><div><b>วันนี้ ('+todayKey+') รวมทุกช่องทาง</b><div class="mini">'+todayStats.orders+' ออเดอร์</div></div><div class="histAmt">'+todayStats.items+' ชิ้น<br><span class="mini">'+money(todayStats.total)+'</span></div></div><div style="margin-top:8px">'+(todayProd||'<div class="mini muted">ยังไม่มีรายการวันนี้</div>')+'</div></div>'+
+    '<div class="histCard" style="display:block;background:#eff6ff;border:1px solid #bfdbfe"><div style="display:flex;justify-content:space-between;gap:10px"><div><b>สินค้าออกจากโรงงานวันนี้ ('+todayKey+') ทุกช่องทาง</b><div class="mini">'+todayStats.orders+' ออเดอร์ · อิงวันจัดส่งจริง ไม่จำกัดวิธีส่ง</div></div><div class="histAmt">'+todayStats.items+' ชิ้น<br><span class="mini">'+money(todayStats.total)+'</span></div></div><div style="margin-top:8px">'+(todayProd||'<div class="mini muted">ยังไม่มีรายการวันนี้</div>')+'</div></div>'+
     '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;margin-top:14px"><div class="sectionTitle" style="margin:0">ยอดตามกลุ่มช่องทาง ('+escapeHtml(scopeLabel)+')</div><select id="dashMonth" style="padding:8px 10px;border:1px solid #ddd;border-radius:10px;font-size:13px">'+monthOpts+'</select></div>'+
     groupCards+
     '<div class="histCard" style="background:#f0fdf4;border:1px solid #bbf7d0"><div><b>รวมทั้งหมด</b><div class="mini">'+scopeOrders+' ออเดอร์</div></div><div class="histAmt">'+scopeItems+' ชิ้น<br><span class="mini">'+money(scopeTotal)+'</span></div></div>'+
