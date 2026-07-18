@@ -452,26 +452,46 @@ async function fetchBoxesFromSupabase(o){
 function defaultBoxFromOrder(o){
   return {box_no:1,delivery_method:o.delivery_method||'parcel',ship_date:o.ship_date||'',tracking_no:'',tracking_url:'',status:'draft',note:'',items:(o.items||[]).map(function(it){return {option_id:String(it.option_id||''),display_product_id:String(it.display_product_id||''),qty:Number(it.qty)||0}})};
 }
+// แบ่งลัง: สินค้าชนิดเดียวใส่เต็มลังก่อน (ตาม pieces_per_box ของสินค้านั้น) ส่วนที่เหลือไม่ถึงลัง
+// (เศษ) ค่อยเอาไปรวมกับเศษของสินค้าอื่นที่ "น้ำหนักต่อชิ้นเท่ากัน" ก่อน (เช่น 700g รวมกับ 700g,
+// 1kg รวมกับ 1kg) ไม่ปนน้ำหนักกันถ้าไม่จำเป็น -- เดิมเอา max ของแต่ละบรรทัดมาเป็นจำนวนลังรวม ทำให้
+// หลายสินค้าไปกองอยู่ลังเดียวกันจนน้ำหนักเกินจริง (พบใน 260716-00315: ควรได้ 6 ลัง ได้แค่ 3)
 function autoSplitBoxes(o){
   var lines=(o.items||[]).map(function(it){
     var p=productByOpt(it.option_id)||{};
     var qty=Number(it.qty)||0;
-    var limit=Number(p.pieces_per_box)||0;
-    return {option_id:String(it.option_id||''),display_product_id:String(it.display_product_id||''),qty:qty,limit:limit>0?limit:qty};
+    var limit=Number(p.pieces_per_box)||0; if(!(limit>0))limit=qty||1;
+    return {option_id:String(it.option_id||''),display_product_id:String(it.display_product_id||''),qty:qty,limit:limit,weight_kg:Number(p.weight_kg)||0};
   }).filter(function(l){return l.qty>0});
   if(!lines.length)return [defaultBoxFromOrder(o)];
-  var maxBoxes=lines.reduce(function(m,l){return Math.max(m,Math.ceil(l.qty/l.limit)||1)},1);
-  var boxes=[];
-  for(var i=0;i<maxBoxes;i++){
-    var boxItems=[];
-    lines.forEach(function(l){
-      var remaining=l.qty-i*l.limit;
-      if(remaining<=0)return;
-      boxItems.push({option_id:l.option_id,display_product_id:l.display_product_id,qty:Math.min(remaining,l.limit)});
+  var boxItemsList=[];
+  var remaindersByWeight={};
+  lines.forEach(function(l){
+    var full=Math.floor(l.qty/l.limit);
+    var rem=l.qty-full*l.limit;
+    for(var i=0;i<full;i++)boxItemsList.push([{option_id:l.option_id,display_product_id:l.display_product_id,qty:l.limit}]);
+    if(rem>0){
+      var wk=String(l.weight_kg);
+      if(!remaindersByWeight[wk])remaindersByWeight[wk]=[];
+      remaindersByWeight[wk].push({option_id:l.option_id,display_product_id:l.display_product_id,qty:rem,limit:l.limit});
+    }
+  });
+  Object.keys(remaindersByWeight).forEach(function(wk){
+    var group=remaindersByWeight[wk];
+    var cap=group.reduce(function(m,g){return Math.max(m,g.limit)},0)||1;
+    var cur=[],curQty=0;
+    group.forEach(function(g){
+      var left=g.qty;
+      while(left>0){
+        if(curQty>=cap){boxItemsList.push(cur);cur=[];curQty=0;}
+        var take=Math.min(left,cap-curQty);
+        cur.push({option_id:g.option_id,display_product_id:g.display_product_id,qty:take});
+        curQty+=take;left-=take;
+      }
     });
-    boxes.push({box_no:i+1,delivery_method:o.delivery_method||'parcel',ship_date:'',tracking_no:'',tracking_url:'',status:'draft',note:'',items:boxItems});
-  }
-  return boxes;
+    if(cur.length)boxItemsList.push(cur);
+  });
+  return boxItemsList.map(function(items,i){return {box_no:i+1,delivery_method:o.delivery_method||'parcel',ship_date:'',tracking_no:'',tracking_url:'',status:'draft',note:'',items:items};});
 }
 function ensureBoxes(o){
   if(!o)return [];
