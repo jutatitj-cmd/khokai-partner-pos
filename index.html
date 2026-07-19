@@ -684,10 +684,12 @@ async function suggestPastAddress(){
   if(phone.length<8)return;
   var sb=sbClient(); if(!sb)return;
   try{
-    var r=await sb.from(ORDER_TABLE).select('order_no,receiver_name,address,payload,updated_at').eq('order_module','partner_pos').eq('receiver_phone',phone).order('updated_at',{ascending:false}).limit(5);
+    // เบอร์ในฐานข้อมูลเก่าบันทึกไว้หลายรูปแบบ (มี/ไม่มีขีด เช่น "010-5599-4348" หรือ "01055994348")
+    // เทียบแบบ exact match ฝั่ง DB ไม่เจอ ต้องดึงมาแล้วตัดอักขระที่ไม่ใช่ตัวเลขเทียบฝั่ง JS แทน
+    var r=await sb.from(ORDER_TABLE).select('order_no,receiver_name,receiver_phone,address,payload,updated_at').eq('order_module','partner_pos').not('receiver_phone','is',null).order('updated_at',{ascending:false}).limit(500);
     if(r.error||!r.data||!r.data.length)return;
     var curOrderNo=(detailOrder()||{}).order_no;
-    var hit=r.data.find(function(x){return x.order_no!==curOrderNo&&x.address});
+    var hit=r.data.find(function(x){return x.order_no!==curOrderNo&&x.address&&String(x.receiver_phone||'').replace(/[^0-9]/g,'')===phone});
     if(!hit)return;
     var zip=(hit.payload&&hit.payload.zipcode)||'';
     lastAddrSuggestion={receiver_name:hit.receiver_name||'',address:hit.address||'',zipcode:zip};
