@@ -280,7 +280,7 @@
   </section>
   <section id="viewConfirm" class="hide">
     <div class="bar" style="margin:4px 0 8px">
-      <div class="grow"><div class="sectionTitle" style="margin:0">รอยืนยันการชำระ</div><div class="mini">เงินเข้าธนาคารที่ระบบจับคู่ออเดอร์ให้อัตโนมัติ — ตรวจช่องทาง/ผู้รับ แล้วกดยืนยัน</div></div>
+      <div class="grow"><div class="sectionTitle" style="margin:0">รอยืนยันการชำระ</div><div class="mini">เงินเข้าธนาคารที่ระบบจับคู่กับออเดอร์ที่รอชำระ — ดูผู้โอน/รายการให้ตรง แล้วกดยืนยัน (ช่องทาง·ผู้รับ ค่อยกรอกตอนปิดออเดอร์)</div></div>
       <button id="refreshConfirm" class="iconbtn" title="รีเฟรช">↻</button>
     </div>
     <div id="confirmList"></div>
@@ -1498,12 +1498,14 @@ async function renderPendingConfirm(){
       var c=document.createElement('div'); c.className='card';
       c.innerHTML=
         '<div class="quick-head"><div class="grow"><div class="orderNo" style="font-size:18px;color:var(--ink)">'+escapeHtml(x.order_no||'-')+'</div>'
-        +'<div style="margin-top:4px"><span class="pill" style="background:#eef2ff;color:#3730a3;border-color:#c7d2fe;font-size:11px">'+escapeHtml(chLabel(x.channel))+'</span></div></div>'
+        +(x.channel?'<div style="margin-top:4px"><span class="pill" style="background:#eef2ff;color:#3730a3;border-color:#c7d2fe;font-size:11px">'+escapeHtml(chLabel(x.channel))+'</span></div>':'')
+        +'</div>'
         +'<div class="histAmt">'+money(x.deposit_amount)+'</div></div>'
         +'<div class="lockBox" style="margin-top:8px">'
         +'<div>ยอดออเดอร์: <b>'+money(x.total)+'</b>'+(amtMatch?' <span style="color:#047857;font-weight:900">✓ ตรงยอดเงินเข้า</span>':' <span class="dangerText">≠ ไม่ตรงยอดเงินเข้า</span>')+'</div>'
         +'<div>ผู้โอน: <b>'+escapeHtml(x.counterparty_name||'-')+'</b></div>'
-        +'<div>ผู้รับ: '+escapeHtml(x.receiver_name||'-')+(x.receiver_phone?' · '+escapeHtml(x.receiver_phone):'')+'</div>'
+        +'<div>ผู้เปิดออเดอร์: '+escapeHtml(x.seller||'-')+'</div>'
+        +(x.items_summary?'<div>รายการ: '+escapeHtml(x.items_summary)+'</div>':'')
         +'<div class="mini" style="margin-top:4px">สร้างออเดอร์ '+fmtDT(x.order_created_at)+' · เงินเข้า '+fmtDT(x.received_at)+'</div>'
         +'</div>'
         +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn ghost small rej">ปฏิเสธ (ไม่ใช่)</button><button class="btn ok small cfm">ยืนยันการชำระ</button></div>';
