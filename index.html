@@ -1559,16 +1559,21 @@ async function renderPendingConfirm(){
         +'</div>'
         +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn ghost small rej">ปฏิเสธ (ไม่ใช่)</button><button class="btn ok small cfm">ยืนยันการชำระ</button></div>';
       box.appendChild(c);
-      c.querySelector('.cfm').onclick=function(){confirmPending(x.recon_id,x.order_no)};
+      c.querySelector('.cfm').onclick=function(){confirmPending(x.recon_id,x.order_no,x.order_id)};
       c.querySelector('.rej').onclick=function(){rejectPending(x.recon_id,x.order_no)};
     });
   }catch(e){console.warn('pending fetch failed',e);if(box)box.innerHTML='<div class="mutedBox mini">โหลดคิวไม่สำเร็จ: '+escapeHtml(e.message||String(e))+'</div>'}
 }
-async function confirmPending(reconId,orderNo){
-  if(!confirm('ยืนยันว่าออเดอร์ '+orderNo+' ได้รับเงินแล้ว?\nระบบจะบันทึกวันรับเงิน (paid) ให้ออเดอร์นี้'))return;
+async function confirmPending(reconId,orderNo,orderId){
+  if(!confirm('ยืนยันว่าออเดอร์ '+orderNo+' ได้รับเงินแล้ว?\nระบบจะเติมข้อมูลโอน (ยอด·ผู้โอน·วันเวลา) ให้ แล้วพาไปหน้าออเดอร์เพื่อกรอกที่อยู่ต่อ'))return;
   var sb=sbClient(); if(!sb){toast('ยังเชื่อม Supabase ไม่ได้');return}
-  try{var r=await sb.rpc('fin_confirm_recon',{p_recon:reconId});if(r.error)throw r.error;toast('ยืนยันการชำระ '+orderNo+' แล้ว');await fetchOrdersFromSupabase();await renderPendingConfirm()}
-  catch(e){toast('ยืนยันไม่สำเร็จ: '+(e.message||e))}
+  try{
+    var r=await sb.rpc('fin_confirm_recon',{p_recon:reconId});if(r.error)throw r.error;
+    toast('ยืนยันการชำระ '+orderNo+' แล้ว — กรอกที่อยู่ต่อได้เลย');
+    await fetchOrdersFromSupabase();
+    var o=orders.find(function(x){return x.id===orderId});
+    if(o){openDetail(orderId)}else{await renderPendingConfirm();toast('ออเดอร์นี้อยู่คนละโมดูล เปิดในอีกแอปเพื่อกรอกที่อยู่')}
+  }catch(e){toast('ยืนยันไม่สำเร็จ: '+(e.message||e))}
 }
 async function rejectPending(reconId,orderNo){
   if(!confirm('ปฏิเสธการจับคู่ของ '+orderNo+'?\nเงินเข้ารายการนี้จะกลับไปสถานะค้างจับคู่ (ออเดอร์จะยังไม่ถูกทำเครื่องหมายว่าจ่าย)'))return;
