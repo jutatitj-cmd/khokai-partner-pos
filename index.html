@@ -176,6 +176,8 @@
       </div>
       <label class="label" style="margin-top:8px">เวลาโอน</label><input id="payTime" placeholder="เช่น 14:31">
       <label class="label" style="margin-top:8px">ชื่อผู้โอน</label><input id="payerName">
+      <button id="checkPaymentBtn" class="btn blue small full" style="margin-top:10px">🔎 ตรวจการชำระ (ดึงเงินเข้าที่ตรงยอด)</button>
+      <div id="payMatchList"></div>
     </div>
 
     <div class="card">
@@ -1487,6 +1489,46 @@ async function saveUsersToSupabase(){
 // ===== คิวรอยืนยันการชำระ (auto-match deposit -> ยืนยันโดยทีมขาย) =====
 function chLabel(c){c=c||'';var m={'Facebook':'เพจ (Facebook)','LINE':'LINE','Kakao':'KakaoTalk','Instagram':'Instagram','โทรศัพท์':'โทรศัพท์','Walk-in':'หน้าร้าน','Event':'อีเวนต์','ร้านอาหาร':'ร้านอาหาร','Coupang':'Coupang','PARTNER':'พาร์ทเนอร์'};return m[c]||c||'(ไม่ระบุช่องทาง)'}
 function fmtDT(s){if(!s)return '-';try{return new Date(s).toLocaleString('th-TH',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}catch(e){return s}}
+// ===== ตรวจการชำระ: ค้นเงินเข้าที่ตรงยอด แล้วจับคู่ (รองรับออเดอร์ย้อนหลัง/แมนนวล) =====
+async function checkPayment(){
+  var o=detailOrder(); if(!o){toast('ไม่พบออเดอร์');return}
+  var box=$('payMatchList'); if(box)box.innerHTML='<div class="mutedBox mini">กำลังค้นเงินเข้า...</div>';
+  var sb=sbClient(); if(!sb){if(box)box.innerHTML='';toast('ยังเชื่อม Supabase ไม่ได้');return}
+  var amt=orderTotal(o);
+  var created=new Date(o.created_at||Date.now());
+  var from=new Date(created.getTime()-14*86400000).toISOString();
+  var to=new Date(created.getTime()+14*86400000).toISOString();
+  try{
+    var r=await sb.from('fin_bank_messages').select('id,received_at,amount,counterparty_name,balance_verified')
+      .eq('direction','in').eq('status','unmatched').eq('amount',amt)
+      .gte('received_at',from).lte('received_at',to).order('received_at',{ascending:false});
+    if(r.error)throw r.error;
+    var rows=r.data||[]; if(!box)return;
+    if(!rows.length){box.innerHTML='<div class="mutedBox mini">ไม่พบเงินเข้าที่ตรงยอด '+money(amt)+' ในช่วง ±14 วัน<br>(อาจยังไม่เข้า · ยอดไม่ตรง · หรือถูกจับคู่ไปแล้ว)</div>';return}
+    box.innerHTML='<div class="mini" style="margin-top:8px">เงินเข้าที่ตรงยอด '+money(amt)+':</div>';
+    rows.forEach(function(m){
+      var d=document.createElement('div'); d.className='histCard';
+      var vf=m.balance_verified?'':' <span class="dangerText" style="font-size:10px">⚠ ยอดคงเหลือยังไม่ยืนยัน</span>';
+      d.innerHTML='<div><div class="histNo" style="font-size:14px">'+escapeHtml(m.counterparty_name||'-')+'</div><div class="mini">'+fmtDT(m.received_at)+vf+'</div></div><div style="text-align:right"><div class="histAmt" style="font-size:15px">'+money(m.amount)+'</div><button class="btn ok small doMatch" style="margin-top:4px">จับคู่ &amp; จ่าย</button></div>';
+      box.appendChild(d);
+      d.querySelector('.doMatch').onclick=function(){confirmManualMatch(o.id,m.id,o.order_no)};
+    });
+  }catch(e){if(box)box.innerHTML='<div class="mutedBox mini">ค้นไม่สำเร็จ: '+escapeHtml(e.message||String(e))+'</div>'}
+}
+async function confirmManualMatch(orderId,messageId,orderNo){
+  if(!confirm('ยืนยันจับคู่เงินเข้านี้กับออเดอร์ '+orderNo+' และบันทึกว่าชำระแล้ว?'))return;
+  var sb=sbClient(); if(!sb){toast('ยังเชื่อม Supabase ไม่ได้');return}
+  try{
+    var r=await sb.rpc('fin_manual_match',{p_order_id:orderId,p_message_id:messageId});
+    if(r.error)throw r.error;
+    var res=r.data||{};
+    if(!res.ok){toast('จับคู่ไม่สำเร็จ: '+(res.error||'unknown'));return}
+    toast('จับคู่และบันทึกชำระ '+orderNo+' แล้ว');
+    await fetchOrdersFromSupabase();
+    var o=orders.find(function(x){return x.id===orderId}); if(o)fillDetail(o);
+    if($('payMatchList'))$('payMatchList').innerHTML='';
+  }catch(e){toast('จับคู่ไม่สำเร็จ: '+(e.message||e))}
+}
 function isChatUrl(s){return /^https?:\/\//i.test(String(s||'').trim())}
 function chatRefHtml(v){v=String(v||'').trim();if(!v)return '';if(isChatUrl(v))return '<div style="margin-top:6px"><a href="'+escapeAttr(v)+'" target="_blank" rel="noopener" class="btn blue small" style="display:inline-block;text-decoration:none">💬 เปิดแชทลูกค้า</a></div>';return '<div>ลูกค้า: <b>'+escapeHtml(v)+'</b></div>'}
 function updateConfirmBadge(n){var b=$('confirmBadge');if(!b)return;if(n>0){b.textContent=n>99?'99+':String(n);b.classList.remove('hide')}else b.classList.add('hide')}
@@ -1942,7 +1984,7 @@ $('saveDetailTemp').onclick=async function(){if(lockGuard())return;var o=collect
 // that's since moved on (e.g. packed via khokai-pack) silently reverts it. Confirmed live: order
 // 260715-00147 flipped SHIPPED->PAID between two near-simultaneous reads while its detail view
 // sat open in a seller's tab -- completeOrder/saveDetailTemp/this all wrote status unconditionally.
-function copyDetailCustomerMessage(lang){var o=collectDetail();if(!o)return;markPartnerOrder(o);save('orders',orders);if(canEditOrder(o))syncOrderToSupabase(o);openMessagePopup(lang,o)}$('copyDetailTh').onclick=function(){copyDetailCustomerMessage('th')};$('copyDetailKo').onclick=function(){copyDetailCustomerMessage('ko')};$('saveChatRef').onclick=async function(){var o=detailOrder();if(!o){toast('ไม่พบออเดอร์');return}o.chat_ref=$('detailChatRef').value.trim();o.updated_at=new Date().toISOString();markPartnerOrder(o);save('orders',orders);var ok=await syncOrderToSupabase(o);toast(ok?'บันทึกลิงก์แชทแล้ว':'บันทึกในเครื่องแล้ว / Supabase: '+(remoteError||'ยังไม่พร้อม'))};$('cancelOrderBtn').onclick=function(){cancelOrder(editingId);showView('history')};$('trackingBaseDetail').oninput=function(){var o=orders.find(function(x){return x.id===editingId});$('trackingLink').value=makeTracking(this.value,o?o.order_no:'')};$('addrApi').onclick=function(){if(window.daum&&daum.Postcode){new daum.Postcode({oncomplete:function(data){$('zipcode').value=data.zonecode;$('address').value=data.roadAddress||data.jibunAddress}}).open()}else toast('Daum Postcode ยังโหลดไม่สำเร็จ')};
+function copyDetailCustomerMessage(lang){var o=collectDetail();if(!o)return;markPartnerOrder(o);save('orders',orders);if(canEditOrder(o))syncOrderToSupabase(o);openMessagePopup(lang,o)}$('copyDetailTh').onclick=function(){copyDetailCustomerMessage('th')};$('copyDetailKo').onclick=function(){copyDetailCustomerMessage('ko')};$('saveChatRef').onclick=async function(){var o=detailOrder();if(!o){toast('ไม่พบออเดอร์');return}o.chat_ref=$('detailChatRef').value.trim();o.updated_at=new Date().toISOString();markPartnerOrder(o);save('orders',orders);var ok=await syncOrderToSupabase(o);toast(ok?'บันทึกลิงก์แชทแล้ว':'บันทึกในเครื่องแล้ว / Supabase: '+(remoteError||'ยังไม่พร้อม'))};$('checkPaymentBtn').onclick=checkPayment;$('cancelOrderBtn').onclick=function(){cancelOrder(editingId);showView('history')};$('trackingBaseDetail').oninput=function(){var o=orders.find(function(x){return x.id===editingId});$('trackingLink').value=makeTracking(this.value,o?o.order_no:'')};$('addrApi').onclick=function(){if(window.daum&&daum.Postcode){new daum.Postcode({oncomplete:function(data){$('zipcode').value=data.zonecode;$('address').value=data.roadAddress||data.jibunAddress}}).open()}else toast('Daum Postcode ยังโหลดไม่สำเร็จ')};
 $('ocrImage').onchange=function(){var f=this.files&&this.files[0];if(!f)return;var r=new FileReader();r.onload=function(){ocrImageData=r.result;$('ocrPreview').src=r.result;$('ocrPreview').classList.remove('hide')};r.readAsDataURL(f)};$('parseOcr').onclick=function(){parseTextToFields($('ocrText').value)};$('ocrAuto').onclick=function(){runAiOcr('auto')};$('ocrSlip').onclick=function(){runAiOcr('slip')};$('ocrAddress').onclick=function(){runAiOcr('address')};
 $('saveSupabase').onclick=async function(){localStorage.setItem(LS+'supabase_url',$('supabaseUrl').value.trim());localStorage.setItem(LS+'supabase_key',$('supabaseKey').value.trim());await testSupabaseConnection();await fetchOrdersFromSupabase();toast('บันทึก Supabase แล้ว')};$('testSupabase').onclick=testSupabaseConnection;$('copySql').onclick=function(){if($('sqlBox'))$('sqlBox').classList.toggle('hide');navigator.clipboard&&navigator.clipboard.writeText(SETUP_SQL).then(function(){toast('คัดลอก SQL แล้ว')})};$('loadProducts').onclick=loadFromSupabase;$('saveProducts').onclick=async function(){document.querySelectorAll('#productEditList .prodEdit').forEach(function(d,i){products[i].thai_name=d.querySelector('.tn').value.trim();products[i].kr_name=d.querySelector('.kn').value.trim();products[i].pick_name=products[i].kr_name;products[i].price_t1=Number(d.querySelector('.p1').value)||0;products[i].price_t2=Number(d.querySelector('.p2').value)||0;products[i].price_t3=Number(d.querySelector('.p3').value)||0;products[i].price_t4=Number(d.querySelector('.p4').value)||0;products[i].price_t5=Number(d.querySelector('.p5').value)||0;products[i].price_t6=Number(d.querySelector('.p6').value)||0;products[i].pieces_per_box=Number(d.querySelector('.pb').value)||0;products[i].active=d.querySelector('.ac').value});save('products',products);await saveProductAliasesToSupabase();renderProductSheet();toast('บันทึกสินค้าแล้ว')};if($('saveExtras'))$('saveExtras').onclick=function(){extras=[];save('extras',extras);renderExtras();calcText();toast('บันทึกข้อความเสริมแล้ว')};$('saveBanks').onclick=function(){banks=parseBanks($('bankAccounts').value);if(!banks.length)banks=defaultBanks;save('banks',banks);renderBankSelect();calcText();toast('บันทึกบัญชีธนาคารแล้ว')};$('addUser').onclick=function(){users.push({username:'new_user',password:'1234',display_name:'',sellerCode:'99',gender:'female',tone:'ค่ะ',message_style:'ค่ะ',role:'seller',active:true});renderUsers()};$('saveUsers').onclick=saveUsersToSupabase;$('saveOcr').onclick=function(){localStorage.setItem(LS+'ocr_endpoint',$('ocrEndpoint').value.trim());localStorage.setItem(LS+'ocr_key',$('ocrKey').value.trim());toast('บันทึก AI OCR แล้ว')};$('saveTracking').onclick=function(){localStorage.setItem(LS+'tracking_base',$('trackingBase').value.trim());toast('บันทึก Tracking แล้ว')};$('lockOrdersBtn').onclick=async function(){if(!confirm('ล็อกระบบ ทุกคนจะสร้าง/แก้ไขออเดอร์ไม่ได้ (ทั้ง Partner POS และ Mini POS) จนกว่าจะปลดล็อก ดำเนินการต่อ?'))return;await toggleOrderLock(true);renderLockStatusBox()};$('unlockOrdersBtn').onclick=async function(){await toggleOrderLock(false);renderLockStatusBox()};document.querySelectorAll('#logout,[id=logout]').forEach(function(b){b.onclick=async function(){try{var sb=sbClient();if(sb)await sb.auth.signOut()}catch(e){}location.reload()}});
 async function bootstrap(){
