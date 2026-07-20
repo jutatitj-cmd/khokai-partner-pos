@@ -966,30 +966,38 @@ function paintDashboard(){
   // ของที่ออกจากโรงงานจริง ไม่ใช่รายได้ และนับทุกออเดอร์ ไม่จำกัดเฉพาะที่ส่งทาง택배 (ต่างจาก KHOKAI Pack ที่นับ
   // เฉพาะออเดอร์ที่ผ่านการแพค/ส่งทาง택배 เท่านั้น)
   var todayKey=(function(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
+  // box-level (ตรงกติกา KHOKAI Pack): แยก 택배(parcel) กับ ส่งเอง(self) ตามวันจัดส่งรายลัง
   var todayStats=(function(){
-    var s={orders:0,items:0,total:0,products:{}};
+    function mk(){return {items:0,orders:{},products:{}};}
+    var parcel=mk(), selfb=mk();
+    function add(bucket,o,it){
+      var qty=Number(it.qty)||0; if(qty<=0)return;
+      var p=productByOpt(it.option_id)||{};
+      var did=productGroupKey(it,p);
+      var nm=p.thai_name||it.name||p.kr_name||did;
+      bucket.items+=qty; bucket.orders[o.order_no||o.id]=true;
+      if(!bucket.products[did])bucket.products[did]={name:nm,qty:0,sales:0,orders:{},channels:{}};
+      else if(nm&&nm.length<bucket.products[did].name.length)bucket.products[did].name=nm;
+      bucket.products[did].qty+=qty; bucket.products[did].orders[o.order_no||o.id]=true;
+      var g=saleGroup(o);
+      if(!bucket.products[did].channels[g])bucket.products[did].channels[g]={qty:0,orders:[]};
+      bucket.products[did].channels[g].qty+=qty;
+      bucket.products[did].channels[g].orders.push({order_no:o.order_no||o.id,qty:qty,order_module:o.order_module});
+    }
     all.forEach(function(o){
       var st=String(o.status||'TEMP').toUpperCase();
       if(st!=='PAID'&&st!=='COMPLETED'&&st!=='SHIPPED')return;
-      if(shipOf(o)!==todayKey)return;
-      s.orders++; s.total+=orderTotal(o);
-      s.items+=(o.items||[]).reduce(function(a,it){return a+(Number(it.qty)||0)},0);
-      (o.items||[]).forEach(function(it){
-        var p=productByOpt(it.option_id)||{};
-        var did=productGroupKey(it,p);
-        var qty=Number(it.qty)||0;
-        var line=qty*(Number(it.price)||Number(p.page_price)||Number(p.price)||0);
-        var nm=p.thai_name||it.name||p.kr_name||did;
-        if(!s.products[did])s.products[did]={name:nm,qty:0,sales:0,orders:{},channels:{}};
-        else if(nm&&nm.length<s.products[did].name.length)s.products[did].name=nm;
-        s.products[did].qty+=qty; s.products[did].sales+=line; s.products[did].orders[o.order_no||o.id]=true;
-        var gTod=saleGroup(o);
-        if(!s.products[did].channels[gTod])s.products[did].channels[gTod]={qty:0,orders:[]};
-        s.products[did].channels[gTod].qty+=qty;
-        s.products[did].channels[gTod].orders.push({order_no:o.order_no||o.id,qty:qty,order_module:o.order_module});
+      var boxes=(o.payload&&o.payload.boxes)||o.boxes||[];
+      if(!boxes.length)boxes=[{delivery_method:o.delivery_method||'parcel',ship_date:shipOf(o),items:(o.items||[])}];
+      var firstShip=cleanShipDate((boxes[0]||{}).ship_date||'')||shipOf(o);
+      boxes.forEach(function(b){
+        var sd=cleanShipDate(b.ship_date||'')||firstShip;
+        if(sd!==todayKey)return;
+        var bucket=((b.delivery_method||'parcel')==='self')?selfb:parcel;
+        (b.items||[]).forEach(function(it){add(bucket,o,it);});
       });
     });
-    return s;
+    return {parcel:parcel, self:selfb};
   })();
   // ลิงก์ต่อช่องทาง คลิกแล้วเปิด modal รายชื่อออเดอร์ที่มีสินค้านี้ในช่องทางนั้น -- เก็บ order list ไว้ใน
   // window.__dashChannelOrders คีย์ด้วย rowId (วันที่/'today') + product key + ชื่อช่องทาง เพราะ HTML ถูก
@@ -997,7 +1005,10 @@ function paintDashboard(){
   function productBreakdownHtml(x,rowId){
     return Object.keys(x.products||{}).sort(function(a,b){return (x.products[b].qty||0)-(x.products[a].qty||0);}).map(function(k){var pr=x.products[k];var orderCount=Object.keys(pr.orders||{}).length;var chLine=GROUPS.filter(function(g){return pr.channels&&pr.channels[g]&&pr.channels[g].qty;}).map(function(g){var mapKey=rowId+'|'+k+'|'+g;window.__dashChannelOrders=window.__dashChannelOrders||{};window.__dashChannelOrders[mapKey]=pr.channels[g].orders;return '<a href="javascript:void(0)" class="chLink" data-mapkey="'+escapeAttr(mapKey)+'" style="color:inherit">'+escapeHtml(g)+' '+pr.channels[g].qty+'</a>';}).join(' · ');var kLabel=(k.indexOf('D:')===0?'Display ':'Option ')+k.slice(2);return '<div class="mini" style="display:flex;justify-content:space-between;gap:8px;border-top:1px dashed #e5e7eb;padding-top:5px;margin-top:5px"><span><b>'+escapeHtml(pr.name||k)+'</b><br><span class="muted">'+escapeHtml(kLabel)+' · '+orderCount+' ออเดอร์</span>'+(chLine?'<br><span class="muted">'+chLine+'</span>':'')+'</span><span style="text-align:right;white-space:nowrap">'+(pr.qty||0)+' ชิ้น<br>'+money(pr.sales||0)+'</span></div>';}).join('');
   }
-  var todayProd=productBreakdownHtml(todayStats,'today');
+  var parcelProd=productBreakdownHtml(todayStats.parcel,'today-parcel');
+  var selfProd=productBreakdownHtml(todayStats.self,'today-self');
+  var parcelOrders=Object.keys(todayStats.parcel.orders).length;
+  var selfOrders=Object.keys(todayStats.self.orders).length;
   var groupCards=GROUPS.map(function(g){var v=scopeGroups[g]||{total:0,orders:0};return '<div class="histCard"><div><b>'+g+'</b><div class="mini">'+v.orders+' ออเดอร์</div></div><div class="histAmt">'+money(v.total)+'</div></div>';}).join('');
   var daily=scopeDays.map(function(dkey){
     var x=byDay[dkey];
@@ -1010,7 +1021,11 @@ function paintDashboard(){
   var sellerHtml=Object.keys(seller).map(function(u){var x=seller[u];return '<div class="histCard"><div><b>'+escapeHtml(u)+'</b><div class="mini">ทั้งหมด '+x.count+' · PAID '+x.paid+' · TEMP '+x.temp+' · ยกเลิก '+x.cancel+'</div></div><div class="histAmt">'+money(x.total)+'</div></div>';}).join('')||'<div class="mutedBox mini">ยังไม่มีข้อมูล</div>';
   var scopeLabel=dashMonth?('เดือน '+monthLabel(dashMonth)):'5 วันล่าสุด';
   $('dashboard').innerHTML=
-    '<div class="histCard" style="display:block;background:#eff6ff;border:1px solid #bfdbfe"><div style="display:flex;justify-content:space-between;gap:10px"><div><b>สินค้าออกจากโรงงานวันนี้ ('+todayKey+') ทุกช่องทาง</b><div class="mini">'+todayStats.orders+' ออเดอร์ · อิงวันจัดส่งจริง ไม่จำกัดวิธีส่ง</div></div><div class="histAmt">'+todayStats.items+' ชิ้น<br><span class="mini">'+money(todayStats.total)+'</span></div></div><div style="margin-top:8px">'+(todayProd||'<div class="mini muted">ยังไม่มีรายการวันนี้</div>')+'</div></div>'+
+    '<div class="histCard" style="display:block;background:#eff6ff;border:1px solid #bfdbfe">'+
+      '<b>สินค้าออกจากโรงงานวันนี้ ('+todayKey+')</b><div class="mini">อิงวันจัดส่งรายลัง · รวม '+(todayStats.parcel.items+todayStats.self.items)+' ชิ้น</div>'+
+      '<div style="margin-top:8px;padding:9px;background:#fff;border-radius:12px;border:1px solid #bfdbfe"><div style="display:flex;justify-content:space-between;gap:8px"><b>📦 택배 (ตรงกับ KHOKAI Pack)</b><span class="histAmt" style="font-size:15px">'+todayStats.parcel.items+' ชิ้น · '+parcelOrders+' ออเดอร์</span></div><div style="margin-top:6px">'+(parcelProd||'<div class="mini muted">ไม่มี</div>')+'</div></div>'+
+      '<div style="margin-top:8px;padding:9px;background:#fff;border-radius:12px;border:1px solid #fde68a"><div style="display:flex;justify-content:space-between;gap:8px"><b>🚚 ส่งเอง / อื่นๆ (self)</b><span class="histAmt" style="font-size:15px">'+todayStats.self.items+' ชิ้น · '+selfOrders+' ออเดอร์</span></div><div style="margin-top:6px">'+(selfProd||'<div class="mini muted">ไม่มี</div>')+'</div></div>'+
+    '</div>'+
     '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;margin-top:14px"><div class="sectionTitle" style="margin:0">ยอดตามกลุ่มช่องทาง ('+escapeHtml(scopeLabel)+')</div><select id="dashMonth" style="padding:8px 10px;border:1px solid #ddd;border-radius:10px;font-size:13px">'+monthOpts+'</select></div>'+
     groupCards+
     '<div class="histCard" style="background:#f0fdf4;border:1px solid #bbf7d0"><div><b>รวมทั้งหมด</b><div class="mini">'+scopeOrders+' ออเดอร์</div></div><div class="histAmt">'+scopeItems+' ชิ้น<br><span class="mini">'+money(scopeTotal)+'</span></div></div>'+
