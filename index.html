@@ -686,14 +686,14 @@ async function suggestPastAddress(){
   try{
     // เบอร์ในฐานข้อมูลเก่าบันทึกไว้หลายรูปแบบ (มี/ไม่มีขีด เช่น "010-5599-4348" หรือ "01055994348")
     // เทียบแบบ exact match ฝั่ง DB ไม่เจอ ต้องดึงมาแล้วตัดอักขระที่ไม่ใช่ตัวเลขเทียบฝั่ง JS แทน
-    var r=await sb.from(ORDER_TABLE).select('order_no,receiver_name,receiver_phone,address,payload,updated_at').eq('order_module','partner_pos').not('receiver_phone','is',null).order('updated_at',{ascending:false}).limit(500);
+    var r=await sb.from(ORDER_TABLE).select('order_no,receiver_name,receiver_phone,address,shipping_memo,payload,updated_at').eq('order_module','partner_pos').not('receiver_phone','is',null).order('updated_at',{ascending:false}).limit(500);
     if(r.error||!r.data||!r.data.length)return;
     var curOrderNo=(detailOrder()||{}).order_no;
     var hit=r.data.find(function(x){return x.order_no!==curOrderNo&&x.address&&String(x.receiver_phone||'').replace(/[^0-9]/g,'')===phone});
     if(!hit)return;
     var zip=(hit.payload&&hit.payload.zipcode)||'';
-    lastAddrSuggestion={receiver_name:hit.receiver_name||'',address:hit.address||'',zipcode:zip};
-    $('addrSuggestText').textContent='พบที่อยู่เดิม จากออเดอร์ '+hit.order_no+': '+(hit.receiver_name?hit.receiver_name+' · ':'')+hit.address;
+    lastAddrSuggestion={receiver_name:hit.receiver_name||'',address:hit.address||'',zipcode:zip,shipping_memo:hit.shipping_memo||''};
+    $('addrSuggestText').textContent='พบที่อยู่เดิม จากออเดอร์ '+hit.order_no+': '+(hit.receiver_name?hit.receiver_name+' · ':'')+hit.address+(hit.shipping_memo?' ('+hit.shipping_memo+')':'');
     $('addrSuggest').classList.remove('hide');
   }catch(e){console.warn('suggestPastAddress failed',e)}
 }
@@ -702,6 +702,7 @@ function applyAddrSuggestion(){
   if(!$('receiverName').value.trim())$('receiverName').value=lastAddrSuggestion.receiver_name;
   $('address').value=lastAddrSuggestion.address;
   if(lastAddrSuggestion.zipcode)$('zipcode').value=lastAddrSuggestion.zipcode;
+  if(lastAddrSuggestion.shipping_memo&&$('shippingMemo')&&!$('shippingMemo').value.trim())$('shippingMemo').value=lastAddrSuggestion.shipping_memo;
   $('addrSuggest').classList.add('hide');
 }
 function fillDetail(o){$('detailOrderNo').textContent=o.order_no;$('detailStatus').textContent=statusLabel(o.status);$('detailStatus').className='status '+statusClass(o.status);if($('cancelOrderBtn'))$('cancelOrderBtn').classList.toggle('hide',(o.status||'TEMP')!=='TEMP');if($('detailPaymentMethod'))$('detailPaymentMethod').value=o.payment_method||'transfer';$('payAmount').value=o.payment_amount||orderTotal(o);$('payDate').value=o.payment_date||'';$('payTime').value=o.payment_time||'';$('payerName').value=o.payer_name||'';$('customerName').value=o.customer_name||'';$('channel').value=o.channel||'Facebook';$('shippingMemo').value=o.shipping_memo||'';if($('detailChatRef'))$('detailChatRef').value=o.chat_ref||'';var base=localStorage.getItem(LS+'tracking_base')||'';$('trackingBaseDetail').value=o.tracking_base||base;$('trackingLink').value=o.tracking_link||o.tracking_url||makeTracking(base,o.order_no);renderDetailOrderItems(o)}
