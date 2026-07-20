@@ -1534,7 +1534,7 @@ async function checkPayment(){
   var to=new Date(created.getTime()+14*86400000).toISOString();
   try{
     var r=await sb.from('fin_bank_messages').select('id,received_at,amount,counterparty_name,balance_verified')
-      .eq('direction','in').eq('status','unmatched').eq('amount',amt)
+      .eq('direction','in').in('status',['unmatched','ignored']).eq('amount',amt)
       .gte('received_at',from).lte('received_at',to).order('received_at',{ascending:false});
     if(r.error)throw r.error;
     var rows=r.data||[]; if(!box)return;
@@ -1571,6 +1571,7 @@ async function renderPendingConfirm(){
   var box=$('confirmList'); if(box)box.innerHTML='<div class="mutedBox mini">กำลังโหลด...</div>';
   var sb=sbClient(); if(!sb){if(box)box.innerHTML='<div class="mutedBox mini">ยังเชื่อม Supabase ไม่ได้</div>';return}
   try{
+    try{await sb.rpc('fin_automatch_incoming')}catch(_e){} // จับคู่สดทุกครั้งที่เปิดคิว (กัน webhook พลาด)
     var r=await sb.from('fin_v_pending_confirm').select('*').order('suggested_at',{ascending:false});
     if(r.error)throw r.error;
     var rows=r.data||[]; updateConfirmBadge(rows.length);
