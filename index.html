@@ -904,7 +904,7 @@ async function fetchAllOrdersForDashboard(){
   try{
     var r=await sb.from(ORDER_TABLE).select('*').in('order_module',['mini_pos','partner_pos']).order('created_at',{ascending:false}).limit(1000);
     if(r.error)throw r.error;
-    return (r.data||[]).map(function(x){var o=x.payload||x;if(!o.order_module&&x.order_module)o.order_module=x.order_module;if(!o.channel&&x.channel)o.channel=x.channel;if(!o.ship_date&&x.ship_date)o.ship_date=x.ship_date;if(!o.payment_date&&x.payment_date)o.payment_date=x.payment_date;if(!o.coupang_bundle_no&&x.coupang_bundle_no)o.coupang_bundle_no=x.coupang_bundle_no;if(!o.created_at&&x.created_at)o.created_at=x.created_at;if(x.status)o.status=x.status;o.tracking_no=x.tracking_no||o.tracking_no;return o;});
+    return (r.data||[]).map(function(x){var o=x.payload||x;if(!o.order_module&&x.order_module)o.order_module=x.order_module;if(!o.channel&&x.channel)o.channel=x.channel;if(!o.ship_date&&x.ship_date)o.ship_date=x.ship_date;if(!o.payment_date&&x.payment_date)o.payment_date=x.payment_date;if(!o.coupang_bundle_no&&x.coupang_bundle_no)o.coupang_bundle_no=x.coupang_bundle_no;if(!o.created_at&&x.created_at)o.created_at=x.created_at;return o;});
   }catch(e){console.warn('dashboard fetch failed',e);return (orders||[]).slice();}
 }
 async function renderDashboard(){ dashOrders=await fetchAllOrdersForDashboard(); paintDashboard(); }
@@ -986,8 +986,7 @@ function paintDashboard(){
     }
     all.forEach(function(o){
       var st=String(o.status||'TEMP').toUpperCase();
-      if(st!=='PAID')return; // ตรงกับ KHOKAI Pack: นับเฉพาะ PAID (SHIPPED = หยิบส่งไปแล้ว)
-      if(o.tracking_no||(o.payload&&o.payload.tracking_no))return; // Pack: tracking_no ว่าง (ยังไม่ส่ง)
+      if(st!=='PAID'&&st!=='COMPLETED'&&st!=='SHIPPED')return; // ออกจากโรงงานวันนี้ = ทุกออเดอร์ที่ยืนยันแล้ว ทุกช่องทาง (ไม่กรองว่าแพคหรือยัง)
       var boxes=(o.payload&&o.payload.boxes)||o.boxes||[];
       if(!boxes.length)boxes=[{delivery_method:o.delivery_method||'parcel',ship_date:shipOf(o),items:(o.items||[])}];
       var firstShip=cleanShipDate((boxes[0]||{}).ship_date||'')||shipOf(o);
@@ -1023,8 +1022,8 @@ function paintDashboard(){
   var scopeLabel=dashMonth?('เดือน '+monthLabel(dashMonth)):'5 วันล่าสุด';
   $('dashboard').innerHTML=
     '<div class="histCard" style="display:block;background:#eff6ff;border:1px solid #bfdbfe">'+
-      '<b>สินค้าที่ต้องหยิบวันนี้ ('+todayKey+')</b><div class="mini">เฉพาะ PAID ที่ยังไม่ส่ง · อิงวันจัดส่งรายลัง · รวม '+(todayStats.parcel.items+todayStats.self.items)+' ชิ้น</div>'+
-      '<div style="margin-top:8px;padding:9px;background:#fff;border-radius:12px;border:1px solid #bfdbfe"><div style="display:flex;justify-content:space-between;gap:8px"><b>📦 택배 (ตรงกับ KHOKAI Pack)</b><span class="histAmt" style="font-size:15px">'+todayStats.parcel.items+' ชิ้น · '+parcelOrders+' ออเดอร์</span></div><div style="margin-top:6px">'+(parcelProd||'<div class="mini muted">ไม่มี</div>')+'</div></div>'+
+      '<b>สินค้าออกจากโรงงานวันนี้ ('+todayKey+') ทุกช่องทาง</b><div class="mini">อิงวันจัดส่งรายลัง · รวม '+(todayStats.parcel.items+todayStats.self.items)+' ชิ้น</div>'+
+      '<div style="margin-top:8px;padding:9px;background:#fff;border-radius:12px;border:1px solid #bfdbfe"><div style="display:flex;justify-content:space-between;gap:8px"><b>📦 택배 (ส่งพัสดุ)</b><span class="histAmt" style="font-size:15px">'+todayStats.parcel.items+' ชิ้น · '+parcelOrders+' ออเดอร์</span></div><div style="margin-top:6px">'+(parcelProd||'<div class="mini muted">ไม่มี</div>')+'</div></div>'+
       '<div style="margin-top:8px;padding:9px;background:#fff;border-radius:12px;border:1px solid #fde68a"><div style="display:flex;justify-content:space-between;gap:8px"><b>🚚 ส่งเอง / อื่นๆ (self)</b><span class="histAmt" style="font-size:15px">'+todayStats.self.items+' ชิ้น · '+selfOrders+' ออเดอร์</span></div><div style="margin-top:6px">'+(selfProd||'<div class="mini muted">ไม่มี</div>')+'</div></div>'+
     '</div>'+
     '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;margin-top:14px"><div class="sectionTitle" style="margin:0">ยอดตามกลุ่มช่องทาง ('+escapeHtml(scopeLabel)+')</div><select id="dashMonth" style="padding:8px 10px;border:1px solid #ddd;border-radius:10px;font-size:13px">'+monthOpts+'</select></div>'+
