@@ -572,7 +572,15 @@ function boxesMissingShipDate(o){
 // ค้างจาก option เก่าตอนออเดอร์ถูกแก้ทีหลัง) จำนวนจะไปโผล่ผิด option เงียบๆ เช่นเคส 260719-00138 ลัง 2
 // เคยเป็น 95602230905 (1kg) 15 ทั้งที่ออเดอร์สั่ง 95602230907 (700g) 20. เช็คสองทาง: (1) ทุก option ใน
 // ออเดอร์ผลรวมในลังต้องเท่ากับจำนวนสั่ง (2) ห้ามมี option ในลังที่ไม่มีในออเดอร์. คืน array ข้อความ error.
+// ส่งเอง (รถห้องเย็นของร้านเอง) ไม่ต้องแบ่งลังละเอียดเป๊ะเหมือนของที่จะลงทะเบียน 로젠 -- ไม่มีผลต่อ
+// 로젠 (ถูกกรองออกอยู่แล้ว) และ "ออกจากโรงงาน"/OMS ก็นับจากยอดออเดอร์ ไม่ได้นับจากยอดในลัง จึงข้ามการ
+// เช็ค reconcile ได้เมื่อทุกลังที่มีของเป็น "ส่งเอง" ทั้งหมด
+function isFullySelfDelivery(o,boxes){
+  boxes=(boxes||o.boxes||[]).filter(function(b){return (b.items||[]).some(function(it){return (Number(it.qty)||0)>0})});
+  return boxes.length>0&&boxes.every(function(b){return (b.delivery_method||o.delivery_method||'parcel')==='self'});
+}
 function boxesReconcileErrors(o,boxes){
+  if(isFullySelfDelivery(o,boxes))return [];
   boxes=boxes||o.boxes||[];
   var orderQty={},boxQty={},errs=[];
   (o.items||[]).forEach(function(it){var k=String(it.option_id||'');if(!k)return;orderQty[k]=(orderQty[k]||0)+(Number(it.qty)||0)});
