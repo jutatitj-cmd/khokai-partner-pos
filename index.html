@@ -531,6 +531,7 @@ function boxShipment(o,b,idx,defaultShip){
     address:(b.address||'').trim()||o.address||'',
     shipping_memo:o.shipping_memo||'',
     ship_date:b.ship_date||defaultShip.ship_date||'',
+    delivery_method:b.delivery_method||o.delivery_method||'parcel',
     items:b.items||[]
   };
 }
@@ -1879,6 +1880,8 @@ async function exportPaidOrdersRosen(){
   paid.forEach(function(o){
     var isPartner=String(o.order_module||'')==='partner_pos';
     var ships=isPartner?orderShipments(o):omsShipmentsForOrder(o);
+    // ลังที่ตั้ง "ส่งเอง" (delivery_method='self', เช่นรถห้องเย็นของร้านเอง) ไม่ต้องลงทะเบียน 로젠 เลย
+    ships=ships.filter(function(s){return s.delivery_method!=='self'});
     if(shipDate)ships=ships.filter(function(s){return s.ship_date===shipDate});
     var multiBox=ships.length>1;
     var platform=o.channel||saleGroup(o);
